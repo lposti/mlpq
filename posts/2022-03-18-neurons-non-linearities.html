@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.280">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Lorenzo Posti">
+<meta name="dcterms.date" content="2022-03-18">
+<meta name="description" content="A deep exploration, an visualization, of how a single-layer linear neural network (NN) is able to approximate non linear behaviours with a just handful of neurons and the magic of activation functions.">
+
+<title>Lorenzo Posti’s Machine Learning Quarto blog - Understanding how basic linear NNs handle non-linearities</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">Lorenzo Posti’s Machine Learning Quarto blog</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html">
+ <span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/lposti/"><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://scholar.google.com/citations?user=fDDcGdwAAAAJ&amp;hl=en"><i class="bi bi-mortarboard-fill" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://ui.adsabs.harvard.edu/search/q=docs(library%2FfCiUp3W_T7qXYNboezCKAg)&amp;sort=date%20desc%2C%20bibcode%20desc&amp;p_=0"><i class="bi bi-book-half" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Understanding how basic linear NNs handle non-linearities</h1>
+                  <div>
+        <div class="description">
+          A deep exploration, an visualization, of how a single-layer linear neural network (NN) is able to approximate non linear behaviours with a just handful of neurons and the magic of activation functions.
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">neural_network</div>
+                <div class="quarto-category">basics</div>
+                <div class="quarto-category">bayesian</div>
+                <div class="quarto-category">MCMC</div>
+                <div class="quarto-category">jupyter</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Lorenzo Posti </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">March 18, 2022</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#how-simple-neurons-handle-non-linearities" id="toc-how-simple-neurons-handle-non-linearities" class="nav-link active" data-scroll-target="#how-simple-neurons-handle-non-linearities">How simple neurons handle non-linearities</a>
+  <ul class="collapse">
+  <li><a href="#the-universal-approximation-theorem" id="toc-the-universal-approximation-theorem" class="nav-link" data-scroll-target="#the-universal-approximation-theorem">The Universal approximation Theorem</a></li>
+  <li><a href="#where-does-the-non-linear-behaviour-come-from" id="toc-where-does-the-non-linear-behaviour-come-from" class="nav-link" data-scroll-target="#where-does-the-non-linear-behaviour-come-from">Where does the non-linear behaviour come from</a></li>
+  <li><a href="#part-1-how-many-neurons-are-needed-to-approximate-a-given-non-linearity" id="toc-part-1-how-many-neurons-are-needed-to-approximate-a-given-non-linearity" class="nav-link" data-scroll-target="#part-1-how-many-neurons-are-needed-to-approximate-a-given-non-linearity"><mark>Part 1:</mark> How many neurons are needed to approximate a given non-linearity?</a>
+  <ul class="collapse">
+  <li><a href="#nn-fitting-of-x2-function" id="toc-nn-fitting-of-x2-function" class="nav-link" data-scroll-target="#nn-fitting-of-x2-function">NN fitting of <span class="math inline">\(x^2\)</span> function</a></li>
+  </ul></li>
+  <li><a href="#part-2-how-does-this-compares-with-a-bayesian-likelihood-estimator" id="toc-part-2-how-does-this-compares-with-a-bayesian-likelihood-estimator" class="nav-link" data-scroll-target="#part-2-how-does-this-compares-with-a-bayesian-likelihood-estimator"><mark>Part 2:</mark> How does this compares with a Bayesian likelihood estimator</a></li>
+  <li><a href="#part-3-dealing-with-more-complex-non-linearities" id="toc-part-3-dealing-with-more-complex-non-linearities" class="nav-link" data-scroll-target="#part-3-dealing-with-more-complex-non-linearities"><mark>Part 3:</mark> Dealing with more complex non-linearities</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+<section id="how-simple-neurons-handle-non-linearities" class="level1">
+<h1>How simple neurons handle non-linearities</h1>
+<section id="the-universal-approximation-theorem" class="level3">
+<h3 class="anchored" data-anchor-id="the-universal-approximation-theorem">The Universal approximation Theorem</h3>
+<p>While studying deep learning, coming from a mathematical physics background, I struggled a lot in understanding how a neural network (NN) can fit non-linear functions. Most of the <em>visual explanations</em> or tutorials I could find on NNs did not give me a satisfactory explanation as to how a composition of linear functions - i.e.&nbsp;an NN - can handle non-linear behaviour. So I looked for more formal derivations, as I knew that the mathematical foundations of deep learning had to be sound.</p>
+<p>Eventually I came across one of the most important papers in this field: <strong>Cybenko (1989, <a href="https://link.springer.com/article/10.1007/BF02551274">doi:10.1007/BF02551274</a>)</strong>. Reading this paper opened my eyes and gave me a completely different perspective on the problem. I realized that the key to the <em>universal approximation theorem</em> is that the composition of a linear function and a <em>sigmoidal</em> (so-called activation) function yields a series of functions which is dense in the space of continuous functions.</p>
+<p>In other words, any continuous function can be written as a finite sum of terms given by the composition of a linear and a sigmoidal function, i.e. <span class="math display">\[
+\sum_{i=0}^N \alpha_i\,\sigma({\bf w}_i\cdot{\bf x} + b_i),
+\]</span> with <span class="math inline">\(\sigma: \mathrm{R}\to\mathrm{R}\)</span> being a <em>sigmoidal</em> activation function, <span class="math inline">\({\bf x}\in\mathrm{R}^n\)</span> and <span class="math inline">\({\bf w}_i\in\mathrm{R}^n\)</span>, <span class="math inline">\(\alpha_i,\,b_i\in\mathrm{R}\)</span> <span class="math inline">\(\forall i\)</span>. Cybenko (1989) showed that the set of functions above spans the whole space of continuous functions in <span class="math inline">\(\mathrm{R}^n\)</span>, effectively making this set <em>kind of a</em> <strong>basis</strong> for <span class="math inline">\(\mathrm{R}^n\)</span>, except that the functions are not linearly independent.</p>
+<p>Elements of this set of function as in the equation above are usually called <em>units</em> or <strong>neurons</strong>.</p>
+</section>
+<section id="where-does-the-non-linear-behaviour-come-from" class="level3">
+<h3 class="anchored" data-anchor-id="where-does-the-non-linear-behaviour-come-from">Where does the non-linear behaviour come from</h3>
+<p>Since a neuron is a composition of a linear function with an activation function, the key to approximate non-linear functions is in the <em>sigmoidal</em> activation function. Formally a sigmoidal is a function <span class="math inline">\(\sigma: \mathrm{R}\to\mathrm{R}\)</span> such that <span class="math inline">\(\lim_{x\to+\infty} \sigma(x)=1\)</span> and <span class="math inline">\(\lim_{x\to-\infty} \sigma(x)=0\)</span>. <!-- 
+$$
+\sigma(x) = 
+  \begin{cases}
+  1\qquad\mbox{as}\;\;x\to+\infty,\\
+  0\qquad\mbox{as}\;\;x\to-\infty.
+  \end{cases}
+$$ 
+--> The Heaviside function is an example of one of the simplest sigmoidal functions; however that is not continuous near <span class="math inline">\(x=0\)</span>, thus in practice smooth approximations of it are often used. A popular one is: <span class="math display">\[
+\sigma(x)=\frac{1}{1+e^{-x}}
+\]</span></p>
+<p><strong>But how can a linear combination of lines composed with a step function approximate any non-linear behaviour?</strong> I knew from Cybenko’s results that this had to be the case, so I set out and tried to understand and see this better.</p>
+</section>
+<section id="part-1-how-many-neurons-are-needed-to-approximate-a-given-non-linearity" class="level2">
+<h2 class="anchored" data-anchor-id="part-1-how-many-neurons-are-needed-to-approximate-a-given-non-linearity"><mark>Part 1:</mark> How many neurons are needed to approximate a given non-linearity?</h2>
+<p>I asked myself how many neurons (i.e.&nbsp;elements of Cybenko’s quasi-basis) would I need to approximate a simple second-order non-linearity, i.e.&nbsp;the function <span class="math inline">\(x\mapsto x^2\)</span>.</p>
+<div class="cell" data-execution_count="82">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.nn <span class="im">as</span> nn</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>device <span class="op">=</span> <span class="st">'cuda'</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">'cpu'</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>device <span class="op">=</span> torch.device(device)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>matplotlib inline</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config Completer.use_jedi <span class="op">=</span> <span class="va">False</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Let’s generate the data of a nice parabolic curve with some small random noise and let’s plot them</p>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Training data</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>size <span class="op">=</span> <span class="dv">500</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> torch.linspace(<span class="op">-</span><span class="dv">5</span>, <span class="dv">5</span>, size)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> x.<span class="bu">pow</span>(<span class="dv">2</span>) <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> torch.rand_like(x)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>plt.plot(x,y,<span class="st">'k.'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-03-18-neurons-non-linearities_files/figure-html/cell-5-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>In order to build some intuition of how we may approximate this data with a linear combination of neurons let’s experiment a bit and overplot a few simple combinations of neurons by hand.</p>
+<p>First, we need to define our sigmoidal activation function:</p>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sig <span class="op">=</span> <span class="kw">lambda</span> x: <span class="fl">1.0</span><span class="op">/</span>(<span class="fl">1.0</span><span class="op">+</span>np.exp(<span class="op">-</span>x))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">15</span>,<span class="dv">4</span>), ncols<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> commons(ax):</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    ax.plot(x,y,<span class="st">'k.'</span>, zorder<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    ax.legend(loc<span class="op">=</span><span class="st">'upper center'</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    ax.set_ylim((<span class="va">None</span>, <span class="dv">30</span>))</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].plot(x,<span class="dv">20</span><span class="op">*</span>sig(x), lw<span class="op">=</span><span class="dv">3</span>, label<span class="op">=</span><span class="vs">r"$\rm 20\sigma(x)$"</span>)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].plot(x,<span class="dv">20</span><span class="op">*</span>sig(<span class="op">-</span>x), lw<span class="op">=</span><span class="dv">3</span>, label<span class="op">=</span><span class="vs">r"$\rm 20\sigma(-x)$"</span>)</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].plot(x,<span class="dv">20</span><span class="op">*</span>(sig(x)<span class="op">+</span>sig(<span class="op">-</span>x)), ls<span class="op">=</span><span class="st">'--'</span>, c<span class="op">=</span><span class="st">'tab:green'</span>, label<span class="op">=</span><span class="vs">r"$\rm 20[\sigma(x)+\sigma(-x)]$"</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>commons(ax[<span class="dv">0</span>])</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].plot(x,<span class="dv">20</span><span class="op">*</span>sig(x<span class="op">-</span><span class="dv">3</span>), lw<span class="op">=</span><span class="dv">3</span>, label<span class="op">=</span><span class="vs">r"$\rm 20\sigma(x-3)$"</span>)</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].plot(x,<span class="dv">20</span><span class="op">*</span>sig(<span class="op">-</span>x<span class="op">-</span><span class="dv">3</span>), lw<span class="op">=</span><span class="dv">3</span>, label<span class="op">=</span><span class="vs">r"$\rm 20\sigma(x-3)$"</span>)</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].plot(x,<span class="dv">20</span><span class="op">*</span>(sig(x<span class="op">-</span><span class="dv">3</span>)<span class="op">+</span>sig(<span class="op">-</span>x<span class="op">-</span><span class="dv">3</span>)), ls<span class="op">=</span><span class="st">'--'</span>, c<span class="op">=</span><span class="st">'tab:green'</span>, label<span class="op">=</span><span class="vs">r"$\rm 20[\sigma(x-3)+\sigma(-x-3)]$"</span>)</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>commons(ax[<span class="dv">1</span>])</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">2</span>].plot(x,<span class="dv">25</span><span class="op">*</span>(sig(<span class="fl">1.2</span><span class="op">*</span>x<span class="op">-</span><span class="dv">4</span>)), lw<span class="op">=</span><span class="dv">3</span>, label<span class="op">=</span><span class="vs">r"$\rm 25\sigma(1.2x-4)$"</span>)</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">2</span>].plot(x,<span class="dv">25</span><span class="op">*</span>(sig(<span class="op">-</span><span class="fl">1.2</span><span class="op">*</span>x<span class="op">-</span><span class="dv">4</span>)), lw<span class="op">=</span><span class="dv">3</span>, label<span class="op">=</span><span class="vs">r"$\rm 25\sigma(-1.2x-4)$"</span>)</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">2</span>].plot(x,<span class="dv">25</span><span class="op">*</span>(sig(<span class="fl">1.2</span><span class="op">*</span>x<span class="op">-</span><span class="dv">4</span>)<span class="op">+</span>sig(<span class="op">-</span><span class="fl">1.2</span><span class="op">*</span>x<span class="op">-</span><span class="dv">4</span>)), ls<span class="op">=</span><span class="st">'--'</span>, c<span class="op">=</span><span class="st">'tab:green'</span>,</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>           label<span class="op">=</span><span class="vs">r"$\rm 25[\sigma(1.2x-4)+\sigma(-1.2x-4)]$"</span>)</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>commons(ax[<span class="dv">2</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-03-18-neurons-non-linearities_files/figure-html/cell-7-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>These examples help in building up some intuition on how we can use these sigmoidal <em>building blocks</em> to approximate relatively simple non linear behaviours. In this specific case of a convex second-order non-linearity, the sum of two scaled, shifted and mirrored step functions seems to yield a decent representation of the data close to the origin.</p>
+<section id="dependence-on-the-shape-of-the-activation-function" class="level4">
+<h4 class="anchored" data-anchor-id="dependence-on-the-shape-of-the-activation-function">Dependence on the shape of the activation function</h4>
+<p>Naturally, this is strongly dependent on the particular shape of the sigmoidal function that we chose, i.e.&nbsp;<span class="math inline">\(\sigma: x\mapsto (1+e^{-x})^{-1}\)</span>. If we had chosen a Heaviside function instead, the sum of the two neurons above would not have yielded a similarly good approximation of the data.</p>
+<div class="cell" data-execution_count="91">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>fig,ax<span class="op">=</span>plt.subplots()</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>ax.plot(x,<span class="dv">25</span><span class="op">*</span>(np.heaviside(<span class="fl">1.2</span><span class="op">*</span>x<span class="op">-</span><span class="dv">4</span>,<span class="fl">0.5</span>)), lw<span class="op">=</span><span class="dv">3</span>, label<span class="op">=</span><span class="vs">r"$\rm 25\sigma(1.2x-4)$"</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>ax.plot(x,<span class="dv">25</span><span class="op">*</span>(np.heaviside(<span class="op">-</span><span class="fl">1.2</span><span class="op">*</span>x<span class="op">-</span><span class="dv">4</span>,<span class="fl">0.5</span>)), lw<span class="op">=</span><span class="dv">3</span>, label<span class="op">=</span><span class="vs">r"$\rm 25\sigma(-1.2x-4)$"</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>ax.plot(x,<span class="dv">25</span><span class="op">*</span>(np.heaviside(<span class="fl">1.2</span><span class="op">*</span>x<span class="op">-</span><span class="dv">4</span>,<span class="fl">0.5</span>)<span class="op">+</span>np.heaviside(<span class="op">-</span><span class="fl">1.2</span><span class="op">*</span>x<span class="op">-</span><span class="dv">4</span>,<span class="fl">0.5</span>)), ls<span class="op">=</span><span class="st">'--'</span>, c<span class="op">=</span><span class="st">'tab:green'</span>,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        label<span class="op">=</span><span class="vs">r"$\rm 25[\sigma(1.2x-4)+\sigma(-1.2x-4)]$"</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>commons(ax)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-display">
+<p><img src="2022-03-18-neurons-non-linearities_files/figure-html/cell-8-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+<section id="nn-fitting-of-x2-function" class="level3">
+<h3 class="anchored" data-anchor-id="nn-fitting-of-x2-function">NN fitting of <span class="math inline">\(x^2\)</span> function</h3>
+<p>Now that we have some intuition on the linear combinations of neurons let’s try to answer the question posed at the beginning of Part 1, that is how many neurons are needed to approximate <span class="math inline">\(x^2\)</span>.</p>
+<p>To answer this we will build a series of simple <code>torch</code> models made up of just one (hidden) layer of neurons, i.e.</p>
+<p><code>nn.Sequential(nn.Linear(1, N_units), nn.Sigmoid(), nn.Linear(N_units, 1))</code></p>
+<p>We start by defining a learning rate and a number of epochs; then we loop through the 5 numbers of neurons explored, <code>[1,2,4,8,16]</code>, we set up the <code>nn.Sequential</code> model and we start the full training loop on the data. We put all of this into a convenient class with a <code>run</code> method and a <code>plots</code> method, which we use to visualize the output.</p>
+<div class="cell" data-code_folding="[]" data-execution_count="65">
+<details open="">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ModelsTestingActivations():</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, activation_fn<span class="op">=</span>nn.Sigmoid(), loss_fn<span class="op">=</span>nn.MSELoss(reduction<span class="op">=</span><span class="st">'sum'</span>), </span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>                 units<span class="op">=</span>[<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">4</span>,<span class="dv">8</span>,<span class="dv">16</span>], learning_rate<span class="op">=</span><span class="fl">3e-2</span>, num_epochs<span class="op">=</span><span class="dv">1000</span>):</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.activ_fn, <span class="va">self</span>.loss_fn <span class="op">=</span> activation_fn, loss_fn</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.units, <span class="va">self</span>.lr, <span class="va">self</span>.num_epochs <span class="op">=</span> units, learning_rate, num_epochs</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        <span class="co"># outputs</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.models, <span class="va">self</span>.preds <span class="op">=</span> [], []</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> make_model(<span class="va">self</span>, u):</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> nn.Sequential(nn.Linear(in_features<span class="op">=</span><span class="dv">1</span>, out_features<span class="op">=</span>u, bias<span class="op">=</span><span class="va">True</span>), </span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>                             <span class="va">self</span>.activ_fn,</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>                             nn.Linear(in_features<span class="op">=</span>u, out_features<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>                            )</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> plots(<span class="va">self</span>, residuals<span class="op">=</span><span class="va">True</span>, xextrap<span class="op">=</span><span class="dv">10</span>):</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> <span class="bu">hasattr</span>(<span class="va">self</span>, <span class="st">'x'</span>): </span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span> (<span class="st">'Have you run the model yet?'</span>)</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>       </span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>        fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">18</span>,<span class="fl">3.2</span>), ncols<span class="op">=</span><span class="bu">len</span>(<span class="va">self</span>.units))</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(<span class="va">self</span>.units)):</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>            ax[i].set_xlabel(<span class="vs">r'$x$'</span>)</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> i<span class="op">==</span><span class="dv">0</span>: ax[i].set_ylabel(<span class="vs">r'$y$'</span>)</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>            ax[i].plot(<span class="va">self</span>.x,<span class="va">self</span>.y,<span class="st">'k.'</span>)</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>            ax[i].plot(<span class="va">self</span>.x,<span class="va">self</span>.preds[i],<span class="st">'r.'</span>)</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>            ax[i].plot(np.linspace(<span class="op">-</span>xextrap,xextrap), </span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>                       <span class="va">self</span>.models[i](torch.linspace(<span class="op">-</span>xextrap,xextrap,<span class="dv">50</span>).unsqueeze(<span class="dv">1</span>)).detach(), <span class="st">'b--'</span>)</span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>            ax[i].text(<span class="fl">0.05</span>,<span class="fl">0.05</span>,<span class="vs">r"N=</span><span class="sc">%d</span><span class="vs">"</span> <span class="op">%</span> <span class="va">self</span>.units[i], transform<span class="op">=</span>ax[i].transAxes, fontsize<span class="op">=</span><span class="dv">14</span>)</span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>        <span class="co"># residuals</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> residuals: <span class="cf">return</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>        fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">18</span>,<span class="fl">1.6</span>), ncols<span class="op">=</span><span class="bu">len</span>(<span class="va">self</span>.units))</span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(<span class="va">self</span>.units)):</span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>            ax[i].set_xlabel(<span class="vs">r'$x$'</span>)</span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> i<span class="op">==</span><span class="dv">0</span>: ax[i].set_ylabel(<span class="vs">r'$\Delta y$'</span>)</span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>            ax[i].plot(<span class="va">self</span>.x,(<span class="va">self</span>.y<span class="op">-</span><span class="va">self</span>.preds[i]).<span class="bu">abs</span>(), <span class="st">'k-'</span>, lw<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>            ax[i].text(<span class="fl">0.5</span>,<span class="fl">0.85</span>, <span class="vs">r"$\rm \langle\Delta y\rangle=</span><span class="sc">%1.2f</span><span class="vs">$"</span> <span class="op">%</span> (<span class="va">self</span>.y<span class="op">-</span><span class="va">self</span>.preds[i]).<span class="bu">abs</span>().mean(), </span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>                       transform<span class="op">=</span>ax[i].transAxes, fontsize<span class="op">=</span><span class="dv">12</span>, ha<span class="op">=</span><span class="st">'center'</span>, va<span class="op">=</span><span class="st">'center'</span>)</span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> run(<span class="va">self</span>, x, y):</span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.x, <span class="va">self</span>.y <span class="op">=</span> x, y </span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i,u <span class="kw">in</span> <span class="bu">enumerate</span>(<span class="va">self</span>.units):</span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>            <span class="co"># define model</span></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>            model <span class="op">=</span> <span class="va">self</span>.make_model(u)</span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.models.append(model)</span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>            <span class="co"># define optimizer</span></span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a>            optimizer <span class="op">=</span> torch.optim.Adam(model.parameters(), lr<span class="op">=</span><span class="va">self</span>.lr)</span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a>            <span class="co"># fitting loop</span></span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(<span class="va">self</span>.num_epochs):</span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a>                <span class="co"># reinitialize gradient of the model weights</span></span>
+<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a>                optimizer.zero_grad()</span>
+<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a>                <span class="co"># prediction &amp; loss</span></span>
+<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a>                y_pred <span class="op">=</span> model(<span class="va">self</span>.x.unsqueeze(<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a>                loss <span class="op">=</span> <span class="va">self</span>.loss_fn(y_pred, <span class="va">self</span>.y.unsqueeze(<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb6-58"><a href="#cb6-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-59"><a href="#cb6-59" aria-hidden="true" tabindex="-1"></a>                <span class="co"># backpropagation</span></span>
+<span id="cb6-60"><a href="#cb6-60" aria-hidden="true" tabindex="-1"></a>                loss.backward()</span>
+<span id="cb6-61"><a href="#cb6-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-62"><a href="#cb6-62" aria-hidden="true" tabindex="-1"></a>                <span class="co"># weight update</span></span>
+<span id="cb6-63"><a href="#cb6-63" aria-hidden="true" tabindex="-1"></a>                optimizer.step()</span>
+<span id="cb6-64"><a href="#cb6-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-65"><a href="#cb6-65" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.preds.append(y_pred.squeeze().detach())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>It is interesting to see how the results of this series of models change depending on which activation function is used, thus we can make our custom class to have as input the shape of the activation function.</p>
+<p>We start with the classic sigmoidal</p>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>mods_sigmoid <span class="op">=</span> ModelsTestingActivations(activation_fn<span class="op">=</span>nn.Sigmoid(), units<span class="op">=</span>[<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">6</span>], learning_rate<span class="op">=</span><span class="fl">5e-2</span>,</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>                                        num_epochs<span class="op">=</span><span class="dv">2000</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>mods_sigmoid.run(x, y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="307">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>mods_sigmoid.plots()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-03-18-neurons-non-linearities_files/figure-html/cell-14-output-1.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-03-18-neurons-non-linearities_files/figure-html/cell-14-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<p>These plots show how the NN model (red) compares to the actual data used for training (black) as a function of the number (N) of neurons used in the linear layer. Moving from the panels left to right the number of neurons increases from <span class="math inline">\(N=1\)</span> to <span class="math inline">\(N=6\)</span>. The dashed blue line is the prediction of the NN model, which we also extrapolated in the range <span class="math inline">\(x\in[-10,10]\)</span> outside of the domain of the data, that are confined within <span class="math inline">\([-5,5]\)</span>. The rows of panels below show the residuals <span class="math inline">\(\Delta y=|y-y_{\rm NN}|\)</span>, i.e.&nbsp;abs(black-red), while <span class="math inline">\(\langle \Delta y \rangle\)</span> is the mean of the residuals.</p>
+<p>There are a few interesting things that we can notice: - when using only one neuron the NN is able only to capture the mean of the data <span class="math inline">\(\langle y \rangle \approx 8.613\)</span> - with N=2 neurons, the linear combinations of the two activations is already able to represent the convex 2nd-order non-linearity of the data, reducing the mean residual by an order of magnitude with respect to the model just predicting the mean (i.e.&nbsp;that with N=1). - obviously, increasing N results in a better approximation to the training data, for a fixed learning rate and number of training epochs, up to a residual 4x better with N=6 than with N=2. - the extrapolations of the NN models outside of the domain of the data do not follow the <span class="math inline">\(x^2\)</span> curve at all, showing that the NN models have successfully learned to reproduce the data, but have not learned completely the behaviour of the underlying curve. This exemplifies that NN models are often poor predictors outside of the domain of the training data</p>
+<p>We can have a closer look at the parameters obtained by the NN model with 2 neurons and see how do they compare to the simple fit by eye that we did above. To do this we can grab the <code>named_parameters</code> of the model with <span class="math inline">\(N=2\)</span> and print them out</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, param <span class="kw">in</span> mods_sigmoid.models[<span class="dv">1</span>].named_parameters():</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> param.requires_grad:</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span> (name, param.data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>0.weight tensor([[-1.4160],
+        [ 1.4624]])
+0.bias tensor([-4.9017, -4.9822])
+2.weight tensor([[23.6837, 22.9339]])
+2.bias tensor([0.9818])</code></pre>
+</div>
+</div>
+<section id="lets-print-out-explicitly-the-function-found-with-n2-neurons" class="level4">
+<h4 class="anchored" data-anchor-id="lets-print-out-explicitly-the-function-found-with-n2-neurons">Let’s print out explicitly the function found with <span class="math inline">\(N=2\)</span> neurons</h4>
+<div class="cell" data-execution_count="25">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> string_func_mod(x):</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (<span class="st">"%1.0f sig(</span><span class="sc">%1.1f</span><span class="st">*x </span><span class="sc">%1.1f</span><span class="st">) + %1.0f sig(</span><span class="sc">%1.1f</span><span class="st">*x </span><span class="sc">%1.1f</span><span class="st">) + </span><span class="sc">%1.1f</span><span class="st">"</span> <span class="op">%</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>           (x[<span class="dv">2</span>], x[<span class="dv">0</span>], x[<span class="dv">1</span>], x[<span class="dv">5</span>], x[<span class="dv">3</span>], x[<span class="dv">4</span>], x[<span class="dv">6</span>]))</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(string_func_mod(mod2_sigmoid))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>24 sig(-1.4*x -4.9) + 23 sig(1.5*x -5.0) + 1.0</code></pre>
+</div>
+</div>
+<p>Really similar to the parameters we obained by eye! (results may vary a bit due to randomness)</p>
+</section>
+<section id="fit-with-different-activation-functions" class="level4">
+<h4 class="anchored" data-anchor-id="fit-with-different-activation-functions">Fit with different activation functions</h4>
+<p>We can also repeat this exercise with different activation functions, e.g.&nbsp;with a softsign</p>
+<div class="cell" data-execution_count="337">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>mods_softsign <span class="op">=</span> ModelsTestingActivations(activation_fn<span class="op">=</span>nn.Softsign(), units<span class="op">=</span>[<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">6</span>], learning_rate<span class="op">=</span><span class="fl">9e-2</span>,</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>                                        num_epochs<span class="op">=</span><span class="dv">1000</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>mods_softsign.run(x, y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="338">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>mods_softsign.plots()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-03-18-neurons-non-linearities_files/figure-html/cell-20-output-1.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-03-18-neurons-non-linearities_files/figure-html/cell-20-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<p>or with a ReLU (however, ReLU is not sigmoidal in the sense of Cybenko, so strictly speaking their universal approximation theorem does not apply. It has been shown that the hypothesis on <span class="math inline">\(\sigma\)</span> can be relaxed to it being non-constant, bounded and piecewise continuous, see e.g.&nbsp;Hornik 1991, Leshno et al.&nbsp;1993)</p>
+<div class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>mods_relu <span class="op">=</span> ModelsTestingActivations(activation_fn<span class="op">=</span>nn.ReLU(), units<span class="op">=</span>[<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">6</span>], learning_rate<span class="op">=</span><span class="fl">5e-2</span>,</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>                                        num_epochs<span class="op">=</span><span class="dv">2000</span>)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>mods_relu.run(x, y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>mods_relu.plots()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-03-18-neurons-non-linearities_files/figure-html/cell-23-output-1.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-03-18-neurons-non-linearities_files/figure-html/cell-23-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<p>While the accuracy of the NN with ReLU, as measured by <span class="math inline">\(\langle\Delta y\rangle\)</span>, is not significantly better than with Sigmoid for the sake of this experiment, the extrapolation out-of-domain is much better. This is because the NN model with ReLU tends to linear outside of the data domain, while the NN model with Sigmoid is approximately constant outside of the range of the training data.</p>
+</section>
+</section>
+</section>
+<section id="part-2-how-does-this-compares-with-a-bayesian-likelihood-estimator" class="level2">
+<h2 class="anchored" data-anchor-id="part-2-how-does-this-compares-with-a-bayesian-likelihood-estimator"><mark>Part 2:</mark> How does this compares with a Bayesian likelihood estimator</h2>
+<p>It would be interesting to fully reconstruct the likelihood distribution of the parameters of the NN model. If the number of parameters is not huge - that is if we are working with a limited number of neurons in a single layer - then an exploration of the multi-dimensional likelihood distribution is still feasible. Moreover, if we are able to map the full likelihood of the model parameters we can also see where the best model found by the NN sits in the space of the likelihood.</p>
+<p>To do this we can use a Monte Carlo Markov Chain (MCMC) analysis. This is actually what I would normally do when facing an optimization problem in physics, as often one can have a pretty good guess on a suitable functional form to use for the fitting function and, more importantly, this method naturally allows to study the uncertainties on the model found.</p>
+<p>We’re using the library <code>emcee</code> (<a href="https://arxiv.org/abs/1202.3665">paper</a>) to run the MCMC analysis and <code>corner</code> (<a href="https://joss.theoj.org/papers/10.21105/joss.00024">paper</a>) to plot the posterior distribution.</p>
+<div class="cell" data-execution_count="43">
+<details open="">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> emcee</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> corner</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co"># the functional definition of the NN model</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> lmod(x, pars):</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">""" A linear combination of nu sigmoidals composed with linear functions """</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    nu <span class="op">=</span> <span class="bu">int</span>((<span class="bu">len</span>(pars)<span class="op">-</span><span class="dv">1</span>)<span class="op">/</span><span class="dv">3</span>) <span class="co"># number of neurons, with 2 biases</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> pars[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(nu): res <span class="op">+=</span> sig(pars[<span class="dv">0</span><span class="op">+</span>i<span class="op">*</span><span class="dv">3</span>]<span class="op">*</span>x<span class="op">+</span>pars[<span class="dv">1</span><span class="op">+</span>i<span class="op">*</span><span class="dv">3</span>])<span class="op">*</span>pars[<span class="dv">2</span><span class="op">+</span>i<span class="op">*</span><span class="dv">3</span>]</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> res </span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="co"># log-likelihood</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> lnlike(pars, x, y):</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">""" This is equivalent to MSELoss(reduction='sum') """</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>    y_lmod <span class="op">=</span> lmod(x,pars)</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="op">-</span>((y<span class="op">-</span>y_lmod).<span class="bu">pow</span>(<span class="dv">2</span>).<span class="bu">sum</span>() <span class="op">/</span> <span class="bu">len</span>(y)).item()</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a><span class="co"># log-prior on the parameters</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> lnprior(pars):</span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">""" A multi-dimensional Gaussian prior with null mean, fixed std and null correlation """</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>    std <span class="op">=</span> <span class="dv">30</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>    lp <span class="op">=</span> <span class="fl">0.</span></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> p <span class="kw">in</span> pars: lp <span class="op">+=</span> <span class="op">-</span><span class="fl">0.5</span><span class="op">*</span>(p)<span class="op">**</span><span class="dv">2</span><span class="op">/</span>std<span class="op">**</span><span class="dv">2</span><span class="op">-</span>np.log(np.sqrt(<span class="dv">2</span><span class="op">*</span>np.pi)<span class="op">*</span>std)</span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> lp</span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a><span class="co"># log-probability = log-likelihood + log-prior</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> lnprob(pars, x, y):</span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>    lk, lp <span class="op">=</span> lnlike(pars, x, y), lnprior(pars)</span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> np.isfinite(lp) <span class="kw">or</span> <span class="kw">not</span> np.isfinite(lk):</span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="op">-</span>np.inf</span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> lp <span class="op">+</span> lk</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Let’s run the MCMC analysis for a <span class="math inline">\(N=2\)</span> NN (see <a href="https://emcee.readthedocs.io/en/stable/tutorials/line/">here</a> for a bit more context on MCMCs with <code>emcee</code>)</p>
+<div class="cell" data-execution_count="44">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>nunits <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>dim <span class="op">=</span> <span class="dv">3</span><span class="op">*</span>nunits<span class="op">+</span><span class="dv">1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="45">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>nu, nw, nstep <span class="op">=</span> <span class="dv">2</span>, <span class="dv">4</span><span class="op">*</span>dim, <span class="dv">10000</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co"># initial conditions of each chain</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>pos <span class="op">=</span> [[<span class="dv">0</span>]<span class="op">*</span>dim <span class="op">+</span> <span class="fl">1e-4</span><span class="op">*</span>np.random.randn(dim) <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(nw)]</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co"># launch the MCMC</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>sampler <span class="op">=</span> emcee.EnsembleSampler(nw, dim, lnprob, args<span class="op">=</span>(x.squeeze(), y.squeeze()))</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>sampler.run_mcmc(pos, nstep)<span class="op">;</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="co"># collate the chains of each walker and remove the first 500 steps - the burn-in phase</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>samples <span class="op">=</span> sampler.chain[:,<span class="dv">500</span>:,:].reshape((<span class="op">-</span><span class="dv">1</span>, dim))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/Users/lposti/anaconda/lib/python3.6/site-packages/ipykernel_launcher.py:1: RuntimeWarning: overflow encountered in exp
+  """Entry point for launching an IPython kernel.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CPU times: user 1min 23s, sys: 988 ms, total: 1min 24s
+Wall time: 1min 38s</code></pre>
+</div>
+</div>
+<p>Finally, let’s plot the posterior probability distribution of the 7 parameters of a NN model with <span class="math inline">\(N=2\)</span> neurons and let’s also mark the location of the model we obtained above with <code>nn.Sequential</code></p>
+<div class="cell" data-execution_count="46">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>corner.corner(samples, bins<span class="op">=</span><span class="dv">30</span>, smooth<span class="op">=</span><span class="fl">1.5</span>, smooth1d<span class="op">=</span><span class="fl">1.5</span>, truths<span class="op">=</span>mod2_sigmoid)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-03-18-neurons-non-linearities_files/figure-html/cell-28-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>Find the maximum probability model, i.e.&nbsp;the model with highest log-prob</p>
+<div class="cell" data-execution_count="47">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>idmax <span class="op">=</span> np.unravel_index(sampler.lnprobability.argmax(), sampler.lnprobability.shape) <span class="co"># maximum probability</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>max_prob <span class="op">=</span> sampler.chain[idmax[<span class="dv">0</span>],idmax[<span class="dv">1</span>],:]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="48">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">'NN model:'</span>)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (string_func_mod(mod2_sigmoid), <span class="st">'    LOSS:</span><span class="sc">%1.2f</span><span class="st">'</span> <span class="op">%</span> lnlike(mod2_sigmoid, x, y))</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> ()</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">'MCMC model'</span>)</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (string_func_mod(max_prob), <span class="st">'    LOSS:</span><span class="sc">%1.2f</span><span class="st">'</span> <span class="op">%</span> lnlike(max_prob, x, y))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>NN model:
+24 sig(-1.4*x -4.9) + 23 sig(1.5*x -5.0) + 1.0     LOSS:-0.73
+
+MCMC model
+28 sig(-1.2*x -4.3) + 31 sig(1.0*x -3.9) + -0.2     LOSS:-0.31</code></pre>
+</div>
+</div>
+<p>and we can also plot them side by side in comparison to the data</p>
+<div class="cell" data-execution_count="59">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">9</span>,<span class="fl">4.</span>), ncols<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> commons(ax):</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="vs">r'$x$'</span>)</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    ax.set_ylabel(<span class="vs">r'$y$'</span>)</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    ax.plot(x,y,<span class="st">'ko'</span>)</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    ax.set_ylim((<span class="op">-</span><span class="dv">1</span>,<span class="dv">32</span>))</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>commons(ax[<span class="dv">0</span>])</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].set_title(<span class="st">"NN best model"</span>, fontsize<span class="op">=</span><span class="dv">16</span>)</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].plot(x, lmod(x, mod2_sigmoid), <span class="st">'r.'</span>)</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].plot(np.linspace(<span class="op">-</span><span class="dv">10</span>,<span class="dv">10</span>), lmod(np.linspace(<span class="op">-</span><span class="dv">10</span>,<span class="dv">10</span>), mod2_sigmoid), <span class="st">'b--'</span>)</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>commons(ax[<span class="dv">1</span>])</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].set_title(<span class="st">"MCMC max prob"</span>, fontsize<span class="op">=</span><span class="dv">16</span>)</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].plot(x, lmod(x, max_prob), <span class="st">'r.'</span>)</span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].plot(np.linspace(<span class="op">-</span><span class="dv">10</span>,<span class="dv">10</span>), lmod(np.linspace(<span class="op">-</span><span class="dv">10</span>,<span class="dv">10</span>), max_prob), <span class="st">'b--'</span>)</span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">9</span>,<span class="fl">2.</span>), ncols<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> commons(ax):</span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="vs">r'$x$'</span>)</span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>    ax.set_ylabel(<span class="vs">r'$\Delta y$'</span>)</span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>    ax.set_ylim((<span class="op">-</span><span class="fl">0.1</span>,<span class="dv">3</span>))</span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>commons(ax[<span class="dv">0</span>])</span>
+<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].plot(x, (y<span class="op">-</span>lmod(x, mod2_sigmoid)).<span class="bu">abs</span>(), <span class="st">'k-'</span>, lw<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].text(<span class="fl">0.5</span>,<span class="fl">0.85</span>, <span class="vs">r"$\rm \langle\Delta y\rangle=</span><span class="sc">%1.2f</span><span class="vs">$"</span> <span class="op">%</span> (y<span class="op">-</span>lmod(x, mod2_sigmoid)).<span class="bu">abs</span>().mean(), </span>
+<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a>               transform<span class="op">=</span>ax[<span class="dv">0</span>].transAxes, fontsize<span class="op">=</span><span class="dv">12</span>, ha<span class="op">=</span><span class="st">'center'</span>, va<span class="op">=</span><span class="st">'center'</span>)<span class="op">;</span></span>
+<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a>commons(ax[<span class="dv">1</span>])</span>
+<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].plot(x, (y<span class="op">-</span>lmod(x, max_prob)).<span class="bu">abs</span>(), <span class="st">'k-'</span>, lw<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb26-33"><a href="#cb26-33" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].text(<span class="fl">0.5</span>,<span class="fl">0.85</span>, <span class="vs">r"$\rm \langle\Delta y\rangle=</span><span class="sc">%1.2f</span><span class="vs">$"</span> <span class="op">%</span> (y<span class="op">-</span>lmod(x, max_prob)).<span class="bu">abs</span>().mean(), </span>
+<span id="cb26-34"><a href="#cb26-34" aria-hidden="true" tabindex="-1"></a>               transform<span class="op">=</span>ax[<span class="dv">1</span>].transAxes, fontsize<span class="op">=</span><span class="dv">12</span>, ha<span class="op">=</span><span class="st">'center'</span>, va<span class="op">=</span><span class="st">'center'</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-03-18-neurons-non-linearities_files/figure-html/cell-32-output-1.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-03-18-neurons-non-linearities_files/figure-html/cell-32-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+<section id="part-3-dealing-with-more-complex-non-linearities" class="level2">
+<h2 class="anchored" data-anchor-id="part-3-dealing-with-more-complex-non-linearities"><mark>Part 3:</mark> Dealing with more complex non-linearities</h2>
+<p>Let’s repeat the analysis of Part 1 but for a more complex non-linear function, for instance a sin function with an oscillating non-linear behaviour. Let’s now ask ourselves how many neurons would you need to fit this function.</p>
+<p>As before, let’s start by generating some data</p>
+<div class="cell" data-execution_count="62">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Training data</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>size <span class="op">=</span> <span class="dv">1000</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> torch.linspace(<span class="op">-</span><span class="dv">10</span>, <span class="dv">10</span>, size)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> torch.sin(x) <span class="op">+</span> <span class="fl">0.2</span> <span class="op">*</span> torch.rand_like(x)</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>plt.plot(x,y,<span class="st">'k.'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-03-18-neurons-non-linearities_files/figure-html/cell-34-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>Now we can use the same <code>ModelsTestingActivations</code> class that we wrote above, just passing the new xs and ys to the <code>run</code> method. Let’s use a Sigmoid activation function and let’s have a look at the performance of the NN models for increasing number of neurons <span class="math inline">\(N\)</span></p>
+<div class="cell" data-execution_count="77">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>mods_sin_sigmoid <span class="op">=</span> ModelsTestingActivations(activation_fn<span class="op">=</span>nn.Sigmoid(), units<span class="op">=</span>[<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">6</span>], learning_rate<span class="op">=</span><span class="fl">4e-2</span>,</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>                                            num_epochs<span class="op">=</span><span class="dv">2000</span>)</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>mods_sin_sigmoid.run(x, y)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="78">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>mods_sin_sigmoid.plots(xextrap<span class="op">=</span><span class="dv">20</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-03-18-neurons-non-linearities_files/figure-html/cell-37-output-1.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-03-18-neurons-non-linearities_files/figure-html/cell-37-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<p>From these plots we can clearly notice a few important things: - the number of neurons limits the number <em>turnovers</em> (i.e.&nbsp;changes of sign of the derivative) of the function that can be fitted - an NN model with <span class="math inline">\(N\)</span> neurons is generally limited to approximate decently only function that change their increasing/decreasing tendency <span class="math inline">\(N\)</span> times - in this particular example, the sin function turnsover 6 times in the interval <span class="math inline">\([-10,10]\)</span>, thus an NN with at least <span class="math inline">\(N=6\)</span> neurons is needed to capture all the times the data turnover - also in this case, the extrapolation of the NN models outside of the domain of the data yield poor predictions. This means that the NN has learned to reproduce the data, but has not learned the underlying functional behaivour</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

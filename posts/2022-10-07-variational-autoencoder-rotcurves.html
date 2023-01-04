@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.280">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Lorenzo Posti">
+<meta name="dcterms.date" content="2022-10-07">
+<meta name="description" content="Constructing an autoencoder that learns the underlying distribution of the input data, generated from a multi-dimensional smooth function f=f(x_1,x_2,x_3,x_4). This can be used to generate new data, sampling from the learned distribution">
+
+<title>Lorenzo Posti’s Machine Learning Quarto blog - Variational Autoencoder: learning an underlying distribution and generating new data</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">Lorenzo Posti’s Machine Learning Quarto blog</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html">
+ <span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/lposti/"><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://scholar.google.com/citations?user=fDDcGdwAAAAJ&amp;hl=en"><i class="bi bi-mortarboard-fill" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://ui.adsabs.harvard.edu/search/q=docs(library%2FfCiUp3W_T7qXYNboezCKAg)&amp;sort=date%20desc%2C%20bibcode%20desc&amp;p_=0"><i class="bi bi-book-half" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Variational Autoencoder: learning an underlying distribution and generating new data</h1>
+                  <div>
+        <div class="description">
+          Constructing an autoencoder that learns the underlying distribution of the input data, generated from a multi-dimensional smooth function <code>f=f(x_1,x_2,x_3,x_4)</code>. This can be used to generate new data, sampling from the learned distribution
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">neural_network</div>
+                <div class="quarto-category">autoencoder</div>
+                <div class="quarto-category">variational autoencoder</div>
+                <div class="quarto-category">basics</div>
+                <div class="quarto-category">jupyter</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Lorenzo Posti </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">October 7, 2022</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#variational-autoencoder-vae-an-algorithm-to-work-with-distributions" id="toc-variational-autoencoder-vae-an-algorithm-to-work-with-distributions" class="nav-link active" data-scroll-target="#variational-autoencoder-vae-an-algorithm-to-work-with-distributions">Variational AutoEncoder (VAE): an algorithm to work with distributions</a></li>
+  <li><a href="#the-variational-autoencoder" id="toc-the-variational-autoencoder" class="nav-link" data-scroll-target="#the-variational-autoencoder">The Variational Autoencoder</a>
+  <ul class="collapse">
+  <li><a href="#exploring-the-latent-space-distribution" id="toc-exploring-the-latent-space-distribution" class="nav-link" data-scroll-target="#exploring-the-latent-space-distribution">Exploring the latent space distribution</a></li>
+  <li><a href="#generating-new-realistic-data" id="toc-generating-new-realistic-data" class="nav-link" data-scroll-target="#generating-new-realistic-data">Generating new realistic data</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+<section id="variational-autoencoder-vae-an-algorithm-to-work-with-distributions" class="level2">
+<h2 class="anchored" data-anchor-id="variational-autoencoder-vae-an-algorithm-to-work-with-distributions">Variational AutoEncoder (VAE): an algorithm to work with distributions</h2>
+<p>This notebook deals with generating an <code>Autoencoder</code> model to learn the underlying distribution of the data. To do this we have to modify the autoencoder such that the <code>encoder</code> does not learn a compressed representation of the input data, but rather it will learn the parameters of the distribution of the data in the latent (compressed) space.</p>
+<p>So the idea is to start from an observed sample of the distribution of the data <span class="math inline">\(P({\bf X})\)</span> and to pass this to the <code>encoder</code> which will reduce its dimensionality, i.e.&nbsp;<span class="math inline">\(P({\bf X})\mapsto P'({\bf X}_{\rm c})\)</span> where <span class="math inline">\({\bf X}\in\mathrm{R}^m\)</span> and <span class="math inline">\({\bf X}_{\rm c}\in\mathrm{R}^n\)</span> with <span class="math inline">\(n&lt;m\)</span>. In other words, in a VAE the <code>encoder</code> step does not represent the input data <span class="math inline">\({\bf X}\)</span> with a <code>code</code> <span class="math inline">\({\bf X}_{\rm c}\)</span>, but rather the initial data distribution <span class="math inline">\(P({\bf X})\)</span> with a compressed distribution <span class="math inline">\(P'({\bf X}_{\rm c})\)</span>, which we usually need to approximate in some analytic form, e.g.&nbsp;a multi-variate normal <span class="math inline">\(P'({\bf X}_{\rm c})\sim \mathcal{N}(\mu,\Sigma)\)</span>.</p>
+<div class="cell" data-execution_count="1">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pylab <span class="im">as</span> plt</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.special <span class="im">import</span> i0, i1, k0, k1</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> tensor</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> nn</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.nn <span class="im">import</span> functional <span class="im">as</span> F</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch, math</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> corner</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config Completer.use_jedi <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>matplotlib inline</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell" data-execution_count="2">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>G, H, Dc <span class="op">=</span> <span class="fl">4.301e-9</span>, <span class="dv">70</span>, <span class="fl">200.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fc(x):</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.log(<span class="dv">1</span><span class="op">+</span>x)<span class="op">-</span>x<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>x)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> Vvir(Mh):</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.sqrt((Dc<span class="op">*</span>(H)<span class="op">**</span><span class="dv">2</span><span class="op">/</span><span class="dv">2</span>)<span class="op">**</span>(<span class="fl">1.</span><span class="op">/</span><span class="fl">3.</span>) <span class="op">*</span> (G<span class="op">*</span>Mh)<span class="op">**</span>(<span class="fl">2.</span><span class="op">/</span><span class="fl">3.</span>))</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> Rvir(Mh):</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    rho_c <span class="op">=</span> <span class="fl">3.</span> <span class="op">*</span> (H)<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> (<span class="fl">8.</span> <span class="op">*</span> np.pi <span class="op">*</span> G)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    rho_hat <span class="op">=</span> <span class="fl">4.</span> <span class="op">/</span> <span class="fl">3.</span> <span class="op">*</span> np.pi <span class="op">*</span> Dc <span class="op">*</span> rho_c</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">1e3</span> <span class="op">*</span> np.power(Mh <span class="op">/</span> rho_hat, <span class="fl">1.</span><span class="op">/</span><span class="fl">3.</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell" data-execution_count="3">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># halo concentration--mass relation</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> c(Mh, w_scatter<span class="op">=</span><span class="va">False</span>, H<span class="op">=</span><span class="fl">70.</span>): </span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> w_scatter: <span class="cf">return</span> <span class="fl">10.</span><span class="op">**</span>(<span class="fl">0.905</span> <span class="op">-</span> <span class="fl">0.101</span> <span class="op">*</span> (np.log10(Mh<span class="op">*</span>H<span class="op">/</span><span class="fl">100.</span>)<span class="op">-</span><span class="dv">12</span>) <span class="op">+</span> rng.normal(<span class="fl">0.0</span>, <span class="fl">0.11</span>, <span class="bu">len</span>(Mh)))</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">10.</span><span class="op">**</span>(<span class="fl">0.905</span> <span class="op">-</span> <span class="fl">0.101</span> <span class="op">*</span> (np.log10(Mh<span class="op">*</span>H<span class="op">/</span><span class="fl">100.</span>)<span class="op">-</span><span class="dv">12</span>))</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># disc mass--size relation</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> getRd_fromMd(Md, w_scatter<span class="op">=</span><span class="va">False</span>):</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">''' approximate mass-size relation '''</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> w_scatter: <span class="cf">return</span> <span class="dv">10</span><span class="op">**</span>((np.log10(Md)<span class="op">-</span><span class="fl">10.7</span>)<span class="op">*</span><span class="fl">0.3</span><span class="op">+</span><span class="fl">0.5</span> <span class="op">+</span> rng.normal(<span class="fl">0.0</span>, <span class="fl">0.4</span>, <span class="bu">len</span>(Md)))</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">10</span><span class="op">**</span>((np.log10(Md)<span class="op">-</span><span class="fl">10.7</span>)<span class="op">*</span><span class="fl">0.3</span><span class="op">+</span><span class="fl">0.5</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co"># disc mass--halo mass relation</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> getMh_fromMd(Md, w_scatter<span class="op">=</span><span class="va">False</span>):</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">''' approximate SHMR '''</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> w_scatter: <span class="cf">return</span> <span class="dv">10</span><span class="op">**</span>((np.log10(Md)<span class="op">-</span><span class="fl">10.7</span>)<span class="op">*</span><span class="fl">0.75</span><span class="op">+</span><span class="fl">12.0</span> <span class="op">+</span> rng.normal(<span class="fl">0.0</span>, <span class="fl">0.25</span>, <span class="bu">len</span>(Md)))</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">10</span><span class="op">**</span>((np.log10(Md)<span class="op">-</span><span class="fl">10.7</span>)<span class="op">*</span><span class="fl">0.75</span><span class="op">+</span><span class="fl">12.0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell" data-execution_count="4">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> curveMod():</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, Md, Rd, Mh, cc, rad<span class="op">=</span>np.logspace(<span class="op">-</span><span class="dv">1</span>, np.log10(<span class="dv">50</span>), <span class="dv">50</span>)):</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.G, <span class="va">self</span>.H, <span class="va">self</span>.Dc <span class="op">=</span> <span class="fl">4.301e-9</span>, <span class="dv">70</span>, <span class="fl">200.</span>  <span class="co"># physical constants</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.Md, <span class="va">self</span>.Rd <span class="op">=</span> Md, Rd</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.Mh, <span class="va">self</span>.cc <span class="op">=</span> Mh, cc</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.rad <span class="op">=</span> rad</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">hasattr</span>(<span class="va">self</span>.Md, <span class="st">'__len__'</span>):</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.vdisc <span class="op">=</span> [<span class="va">self</span>._vdisc(<span class="va">self</span>.rad, <span class="va">self</span>.Md[i], <span class="va">self</span>.Rd[i]) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(<span class="va">self</span>.Md))]</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.vdm   <span class="op">=</span> [<span class="va">self</span>._vhalo(<span class="va">self</span>.rad, <span class="va">self</span>.Mh[i], <span class="va">self</span>.cc[i]) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(<span class="va">self</span>.Md))]</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.vc    <span class="op">=</span> [np.sqrt(<span class="va">self</span>.vdisc[i]<span class="op">**</span><span class="dv">2</span><span class="op">+</span><span class="va">self</span>.vdm[i]<span class="op">**</span><span class="dv">2</span>) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(<span class="va">self</span>.Md))]</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.vdisc <span class="op">=</span> <span class="va">self</span>._vdisc(<span class="va">self</span>.rad, <span class="va">self</span>.Md, <span class="va">self</span>.Rd)</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.vdm   <span class="op">=</span> <span class="va">self</span>._vhalo(<span class="va">self</span>.rad, <span class="va">self</span>.Mh, <span class="va">self</span>.cc)</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.vc    <span class="op">=</span> np.sqrt(<span class="va">self</span>.vdisc<span class="op">**</span><span class="dv">2</span><span class="op">+</span><span class="va">self</span>.vdm<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _fc(<span class="va">self</span>, x): <span class="cf">return</span> np.log(<span class="dv">1</span><span class="op">+</span>x)<span class="op">-</span>x<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>x)</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _Vvir(<span class="va">self</span>, Mh): <span class="cf">return</span> np.sqrt((<span class="va">self</span>.Dc<span class="op">*</span>(<span class="va">self</span>.H)<span class="op">**</span><span class="dv">2</span><span class="op">/</span><span class="dv">2</span>)<span class="op">**</span>(<span class="fl">1.</span><span class="op">/</span><span class="fl">3.</span>) <span class="op">*</span> (<span class="va">self</span>.G<span class="op">*</span>Mh)<span class="op">**</span>(<span class="fl">2.</span><span class="op">/</span><span class="fl">3.</span>))</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _Rvir(<span class="va">self</span>, Mh): <span class="cf">return</span> <span class="fl">1e3</span> <span class="op">*</span> (Mh <span class="op">/</span> (<span class="fl">0.5</span><span class="op">*</span><span class="va">self</span>.Dc<span class="op">*</span><span class="va">self</span>.H<span class="op">**</span><span class="dv">2</span> <span class="op">/</span><span class="va">self</span>.G))<span class="op">**</span>(<span class="fl">1.</span><span class="op">/</span><span class="fl">3.</span>)</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _vhalo(<span class="va">self</span>, R, Mh, cc):</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        <span class="co"># circular velocity of the halo component (NFW model)</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>        rv <span class="op">=</span> <span class="va">self</span>._Rvir(Mh)</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> np.sqrt(<span class="va">self</span>._Vvir(Mh)<span class="op">**</span><span class="dv">2</span><span class="op">*</span>rv<span class="op">/</span>R<span class="op">*</span><span class="va">self</span>._fc(cc<span class="op">*</span>R<span class="op">/</span>rv)<span class="op">/</span><span class="va">self</span>._fc(cc)) </span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _vdisc(<span class="va">self</span>, R, Md, Rd):</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>        <span class="co"># circular velocity of the disc component (exponential disc)</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>        y <span class="op">=</span> R<span class="op">/</span><span class="fl">2.</span><span class="op">/</span>Rd</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> np.nan_to_num(np.sqrt(<span class="dv">2</span><span class="op">*</span><span class="fl">4.301e-6</span><span class="op">*</span>Md<span class="op">/</span>Rd<span class="op">*</span>y<span class="op">**</span><span class="dv">2</span><span class="op">*</span>(i0(y)<span class="op">*</span>k0(y)<span class="op">-</span>i1(y)<span class="op">*</span>k1(y))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Let’s start again by generating the distribution of physical parameters and calculating the rotation curve of a galaxy with those parameters. This part is taken from the <a href="https://lposti.github.io/MLPages/neural%20network/autoencoder/basics/jupyter/2022/10/13/autoencoder_rotcurves.html">blog post on Autoencoders</a> so I just refer to that for details.</p>
+<div class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>nsamp <span class="op">=</span> <span class="dv">2000</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>ms <span class="op">=</span> <span class="dv">10</span><span class="op">**</span>rng.uniform(<span class="dv">9</span>, <span class="dv">12</span>, nsamp)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>rd <span class="op">=</span> getRd_fromMd(ms, w_scatter<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>mh <span class="op">=</span> getMh_fromMd(ms, w_scatter<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>cc <span class="op">=</span> c(mh, w_scatter<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>cm<span class="op">=</span>curveMod(ms,rd,mh,cc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> v <span class="kw">in</span> cm.vc: plt.plot(cm.rad, v)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'radius'</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'velocity'</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-10-07-variational-autoencoder-rotcurves_files/figure-html/cell-11-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>This plot shows a random realization of <code>nsamp</code> rotation curves from our physical model. These curves are the dataset the we are going to use to train our Variational Autoencoder. Let’s start by normalizing the data and defining the training and validation sets.</p>
+<div class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> datanorm(x):  <span class="cf">return</span> (x<span class="op">-</span>x.mean())<span class="op">/</span>x.std(), x.mean(), x.std()</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> datascale(x, m, s): <span class="cf">return</span> x<span class="op">*</span>s<span class="op">+</span>m</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>idshuff <span class="op">=</span> torch.randperm(nsamp)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>xdata <span class="op">=</span> tensor(cm.vc, dtype<span class="op">=</span>torch.<span class="bu">float</span>)[idshuff,:]</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>xdata, xmean, xstd <span class="op">=</span> datanorm(xdata)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>fval <span class="op">=</span> <span class="fl">0.20</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>xtrain <span class="op">=</span> xdata[:<span class="bu">int</span>(nsamp<span class="op">*</span>(<span class="fl">1.0</span><span class="op">-</span>fval))]</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>xvalid <span class="op">=</span> xdata[<span class="bu">int</span>(nsamp<span class="op">*</span>(<span class="fl">1.0</span><span class="op">-</span>fval)):]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/Users/lposti/anaconda/envs/py37/lib/python3.7/site-packages/ipykernel_launcher.py:5: UserWarning: Creating a tensor from a list of numpy.ndarrays is extremely slow. Please consider converting the list to a single numpy.ndarray with numpy.array() before converting to a tensor. (Triggered internally at  /Users/runner/work/_temp/anaconda/conda-bld/pytorch_1659484744261/work/torch/csrc/utils/tensor_new.cpp:204.)
+  """</code></pre>
+</div>
+</div>
+</section>
+<section id="the-variational-autoencoder" class="level2">
+<h2 class="anchored" data-anchor-id="the-variational-autoencoder">The Variational Autoencoder</h2>
+<p>We now build the class, deriving from <code>nn.Module</code>, for our Variational AutoEncoder (VAE). In particular, we define the layers in the <code>__init__</code> method and we define an <code>encoder</code> and a <code>decoder</code> method, just as we did for the Autoencoder. However, this class is quite a lot richer than the one we used for and Autoencoder and we will go through each method below.</p>
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> VariationalAutoEncoder(nn.Module):</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, ninp, <span class="op">**</span>kwargs):</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.encodeLayer1 <span class="op">=</span> nn.Sequential(nn.Linear(in_features<span class="op">=</span>ninp, out_features<span class="op">=</span><span class="dv">32</span>), nn.ReLU())</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.encodeLayer2 <span class="op">=</span> nn.Sequential(nn.Linear(in_features<span class="op">=</span><span class="dv">32</span>,   out_features<span class="op">=</span><span class="dv">16</span>), nn.ReLU())</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.encodeOut    <span class="op">=</span> nn.Linear(in_features<span class="op">=</span><span class="dv">16</span>,   out_features<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.decodeLayer1 <span class="op">=</span> nn.Sequential(nn.Linear(in_features<span class="op">=</span><span class="dv">4</span>,    out_features<span class="op">=</span><span class="dv">16</span>), nn.ReLU())</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.decodeLayer2 <span class="op">=</span> nn.Sequential(nn.Linear(in_features<span class="op">=</span><span class="dv">16</span>,   out_features<span class="op">=</span><span class="dv">32</span>), nn.ReLU())</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.decodeOut    <span class="op">=</span> nn.Linear(in_features<span class="op">=</span><span class="dv">32</span>,   out_features<span class="op">=</span>ninp)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.ELBO_loss <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> encoder(<span class="va">self</span>, x):       </span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>        mean, logvar <span class="op">=</span> torch.split(<span class="va">self</span>.encodeOut(<span class="va">self</span>.encodeLayer2(<span class="va">self</span>.encodeLayer1(x))),<span class="dv">4</span>,dim<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> mean, logvar</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> decoder(<span class="va">self</span>, encoded): <span class="cf">return</span> <span class="va">self</span>.decodeOut(<span class="va">self</span>.decodeLayer2(<span class="va">self</span>.decodeLayer1(encoded)))</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> reparametrize(<span class="va">self</span>, mean, logvar):</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>        eps <span class="op">=</span> tensor(rng.normal(size<span class="op">=</span>mean.shape), dtype<span class="op">=</span>torch.<span class="bu">float</span>)</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> eps <span class="op">*</span> torch.exp(logvar <span class="op">*</span> <span class="fl">0.5</span>) <span class="op">+</span> mean <span class="co"># exp(0.5logvar) = std</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># https://towardsdatascience.com/variational-autoencoder-demystified-with-pytorch-implementation-3a06bee395ed</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># https://arxiv.org/pdf/1312.6114.pdf</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>    <span class="co"># https://stats.stackexchange.com/questions/318748/deriving-the-kl-divergence-loss-for-vaes?noredirect=1&amp;lq=1</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _ELBO(<span class="va">self</span>, x, decoded, mean, logvar):</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>        mseloss <span class="op">=</span> nn.MSELoss(reduction<span class="op">=</span><span class="st">'sum'</span>)</span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>        logpx_z <span class="op">=</span> <span class="op">-</span>mseloss(x, decoded)</span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>        KLdiv <span class="op">=</span> <span class="op">-</span><span class="fl">0.5</span> <span class="op">*</span> torch.<span class="bu">sum</span>(<span class="dv">1</span> <span class="op">+</span> logvar <span class="op">-</span> mean <span class="op">**</span> <span class="dv">2</span> <span class="op">-</span> logvar.exp(), dim <span class="op">=</span> <span class="dv">1</span>)</span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> (KLdiv <span class="op">-</span> logpx_z).mean()</span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x):</span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>        mean, logvar <span class="op">=</span> <span class="va">self</span>.encoder(x)</span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>        z <span class="op">=</span> <span class="va">self</span>.reparametrize(mean, logvar)</span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>        decoded <span class="op">=</span> <span class="va">self</span>.decoder(z)</span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.ELBO_loss <span class="op">=</span> <span class="va">self</span>._ELBO(x, decoded, mean, logvar)</span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> decoded</span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> getELBO_loss(<span class="va">self</span>, x):</span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>        mean, logvar <span class="op">=</span> <span class="va">self</span>.encoder(x)</span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a>        z <span class="op">=</span> <span class="va">self</span>.reparametrize(mean, logvar)</span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a>        decoded <span class="op">=</span> <span class="va">self</span>.decoder(z)</span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>._ELBO(x, decoded, mean, logvar)</span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a>        </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Ok, so there’s a lot to break down here!</p>
+<ul>
+<li>First of all, we notice that the overall structure of the encoder/decoder network is relatively similar to the <code>autoencoder</code> we saw before, with the important difference that the encoder now returns 8 parameters instead of 4. These are the parameters of the multi-variate normal distribution with which we represent the 4-dimensional latent space, so mean and variance for each of the four physical properties that generate the rotation curves. Thus, the encoder step does not output a <code>code</code>, but means and variances for each physical property.</li>
+<li>the decoder step is instead totally similar to a simple <code>autoencoder</code> and in fact it requires a <code>code</code> as an input. In order to generate a code from the means and variances that come out of the encoder phase without breaking the backprop flow of the algorithm, <a href="https://arxiv.org/pdf/1312.6114.pdf">Kingma &amp; Welling (2013)</a> proposed to use a <em>reparametrization trick</em>, which consists of throwing a new sample from a standard normal and then shifting this to have the same mean and variance as given by the encoder.</li>
+<li>the <code>forward</code> method of this class follows these steps: the encoder gives means and variances of the latent space, the reparametrization trick is used to generate a <code>code</code>, which is finally decoded by the decoder.</li>
+<li>the appropriate loss function for a variational autoencoder is the <strong>Evidence Lower BOund <a href="https://en.wikipedia.org/wiki/Evidence_lower_bound">(ELBO)</a></strong>. In fact, minimising the -ELBO means maximising a lower bound on the evidence or likelihood of the model. The evidence, or reconstruction loss, is <code>logpx_z</code> which is just an <code>MSE</code> loss on the data and the decoded output of the autoencoder. This term encourages the reconstruction of the dataset and tends to prefer separated encodings for each element of the dataset. The other term, <code>KLdiv</code>, is the <a href="https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence">Kullback-Leibler divergence</a> of the proposed distribution in the latent space with the likelihood. This term has the opposite effect of promoting overlapping encodings for separate observations. For this reason, maximising ELBO guarantees to achieve a nice compromise between representing the original data and the ability to generalize by generating <em>realistic</em> new data.</li>
+</ul>
+<p>With these changes our neural network is now capable of constructing an approximation for the distribution of the four physical parameters in the latent space. We can now run the usual optimization algorithm and start training this model.</p>
+<div class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>vae <span class="op">=</span> VariationalAutoEncoder(<span class="bu">len</span>(cm.rad))</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Adam and ELBO Loss</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> torch.optim.Adam(vae.parameters(), lr<span class="op">=</span><span class="fl">1e-2</span>)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2000</span>):</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    ymod <span class="op">=</span> vae.forward(xtrain)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    loss <span class="op">=</span> vae.ELBO_loss</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    loss.backward()</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    optimizer.step()</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    optimizer.zero_grad()</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="co">#     print (epoch, "train L:%1.2e" % loss, "  valid L:%1.2e" % vae.getELBO_loss(xvalid))</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> epoch<span class="op">%</span><span class="dv">100</span><span class="op">==</span><span class="dv">0</span>: <span class="bu">print</span> (epoch, <span class="st">"train L:</span><span class="sc">%1.2e</span><span class="st">"</span> <span class="op">%</span> loss, <span class="st">"  valid L:</span><span class="sc">%1.2e</span><span class="st">"</span> <span class="op">%</span> vae.getELBO_loss(xvalid))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>0 train L:8.46e+04   valid L:1.76e+04
+100 train L:1.29e+03   valid L:3.67e+02
+200 train L:5.40e+02   valid L:1.73e+02
+300 train L:4.72e+02   valid L:1.39e+02
+400 train L:1.42e+02   valid L:6.75e+01
+500 train L:1.19e+02   valid L:5.85e+01
+600 train L:9.75e+01   valid L:5.35e+01
+700 train L:1.05e+02   valid L:5.57e+01
+800 train L:7.98e+01   valid L:4.68e+01
+900 train L:1.91e+02   valid L:7.53e+01
+1000 train L:7.49e+01   valid L:4.26e+01
+1100 train L:8.18e+01   valid L:4.40e+01
+1200 train L:6.40e+01   valid L:3.92e+01
+1300 train L:6.89e+01   valid L:3.86e+01
+1400 train L:6.15e+01   valid L:3.69e+01
+1500 train L:6.42e+01   valid L:3.66e+01
+1600 train L:5.76e+01   valid L:3.55e+01
+1700 train L:5.99e+01   valid L:3.60e+01
+1800 train L:1.28e+02   valid L:5.11e+01
+1900 train L:4.93e+01   valid L:3.26e+01</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> v <span class="kw">in</span> datascale(vae.forward(xvalid),xmean,xstd): plt.plot(cm.rad, v.detach().numpy())</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'radius'</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'velocity'</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-10-07-variational-autoencoder-rotcurves_files/figure-html/cell-15-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>The plot above shows the distribution of rotation curves that the VAE has learned. We can see that there is a quite large variety of rotation curve shapes that can be represented by this model. Notice that the region in the radius-velicity space covered by the VAE is indeed quite similar to that of the training set (see plot above).</p>
+<p>This shows that the VAE has indeed learned an effective distribution in the latent space which generates the rotation curve dataset we started from.</p>
+<section id="exploring-the-latent-space-distribution" class="level3">
+<h3 class="anchored" data-anchor-id="exploring-the-latent-space-distribution">Exploring the latent space distribution</h3>
+<p>We can now have a look at what the VAE has learned about the latent space. To do so, we can take the means and variances derived by the <code>encoder</code> on the training set and we can use them to generate samples on the latent space. Basically for each <span class="math inline">\(x_i\)</span> in the training set we get a <span class="math inline">\(\mu_i\)</span> and a <span class="math inline">\(\sigma^2_i\)</span> and we draw 100 samples from <span class="math inline">\(\mathcal{N}(\mu_i, \sigma^2_i)\)</span>.</p>
+<div class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>msm, lvsm <span class="op">=</span> vae.encoder(xtrain)[<span class="dv">0</span>].detach(), vae.encoder(xtrain)[<span class="dv">1</span>].detach()</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># the above are the means and variances obtained by the encoder</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>ns <span class="op">=</span> <span class="dv">100</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>sss <span class="op">=</span> tensor(rng.normal(size<span class="op">=</span>(ns, <span class="dv">4</span>)), dtype<span class="op">=</span>torch.<span class="bu">float</span>) <span class="op">*</span> torch.exp(lvsm[<span class="dv">0</span>] <span class="op">*</span> <span class="fl">0.5</span>) <span class="op">+</span> msm[<span class="dv">0</span>]</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, msm.shape[<span class="dv">0</span>]):</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    sss <span class="op">=</span> torch.vstack((sss, tensor(rng.normal(size<span class="op">=</span>(ns, <span class="dv">4</span>)), dtype<span class="op">=</span>torch.<span class="bu">float</span>) <span class="op">*</span> torch.exp(lvsm[i] <span class="op">*</span> <span class="fl">0.5</span>) <span class="op">+</span> msm[i]))</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (sss.shape)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>torch.Size([160000, 4])</code></pre>
+</div>
+</div>
+<p>We thus have an array of training_set_size x N_samples = 1600 x 100 = 160000 samples generated from the distribution inferred by the VAE on the latent space. Let’s now plot them (I’m using <a href="https://corner.readthedocs.io/en/latest/">corner</a> to do so)</p>
+<div class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>rr <span class="op">=</span> ((<span class="op">-</span><span class="dv">4</span>,<span class="dv">6</span>),(<span class="op">-</span><span class="fl">2.5</span>,<span class="fl">8.0</span>),(<span class="op">-</span><span class="dv">6</span>,<span class="dv">3</span>),(<span class="op">-</span><span class="fl">1.5</span>,<span class="fl">2.5</span>))</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> corner.corner(sss.numpy(), <span class="bu">range</span><span class="op">=</span>rr, hist_kwargs<span class="op">=</span>{<span class="st">"density"</span>:<span class="va">True</span>})<span class="op">;</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> corner.corner(msm.numpy(), <span class="bu">range</span><span class="op">=</span>rr, color<span class="op">=</span><span class="st">'C1'</span>, fig<span class="op">=</span>fig, hist_kwargs<span class="op">=</span>{<span class="st">"density"</span>:<span class="va">True</span>})<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-10-07-variational-autoencoder-rotcurves_files/figure-html/cell-18-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>Here in black we plotted the resulting samples of the latent space as described above, while in orange we overplot just the means <span class="math inline">\(\mu_i\)</span> for each element in the training set. It turns out that the distribution of the means (in orange) is virtually identical to that derived from sampling each multi-variate Gaussian in the latent space (in black).</p>
+<p>This implies that the variances <span class="math inline">\(\sigma^2_i\)</span> that are the output of the <code>encoder</code> are generally quite small and that the <em>VAE effectively reconstructs the distribution of the latent space by superimposing many thin Gaussians, all with slightly different mean and small variance</em>. In fact, one could interpret the orange distribution as a superposition of Dirac deltas centered at each mean derived by the <code>encoder</code> on the training set, i.e.&nbsp;<span class="math inline">\(\sum_i\delta_i(x-\mu_i)\)</span>.</p>
+<p>Let’s now plot together the physical parameters that we used to generate each rotation curve in the training set, together with the means derived by the <code>encoder</code> step on each element of that set. This allows us to explore whether there are any correlations between the original 4 physical parameters and the 4 dimensions of the latent space constructed by the VAE.</p>
+<p>To do this we can stack together the tensor of physical parameters and that of the means.</p>
+<div class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>mdshuff, mhshuff <span class="op">=</span> [cm.Md[i] <span class="cf">for</span> i <span class="kw">in</span> idshuff], [cm.Mh[i] <span class="cf">for</span> i <span class="kw">in</span> idshuff]</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>rdshuff, ccshuff <span class="op">=</span> [cm.Rd[i] <span class="cf">for</span> i <span class="kw">in</span> idshuff], [cm.cc[i] <span class="cf">for</span> i <span class="kw">in</span> idshuff]</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>mdtrain, mhtrain <span class="op">=</span> mdshuff[:<span class="bu">int</span>(nsamp<span class="op">*</span>(<span class="fl">1.0</span><span class="op">-</span>fval))], mhshuff[:<span class="bu">int</span>(nsamp<span class="op">*</span>(<span class="fl">1.0</span><span class="op">-</span>fval))]</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>rdtrain, cctrain <span class="op">=</span> rdshuff[:<span class="bu">int</span>(nsamp<span class="op">*</span>(<span class="fl">1.0</span><span class="op">-</span>fval))], ccshuff[:<span class="bu">int</span>(nsamp<span class="op">*</span>(<span class="fl">1.0</span><span class="op">-</span>fval))]</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co"># physical parameters corresponding to each element of the training set</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>partrain <span class="op">=</span> (np.vstack([mdtrain, mhtrain, rdtrain, cctrain]).T)</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co"># stacking the tensor of phsyical parameters with that of the means derived by the encoder</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>dd <span class="op">=</span> torch.hstack((torch.from_numpy(np.log10(partrain)), msm)).numpy()</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>rr2 <span class="op">=</span> ((<span class="dv">9</span>,<span class="dv">12</span>),(<span class="fl">10.3</span>,<span class="fl">13.6</span>),(<span class="op">-</span><span class="fl">1.0</span>,<span class="fl">1.7</span>),(<span class="fl">0.5</span>,<span class="fl">1.4</span>),(<span class="op">-</span><span class="dv">4</span>,<span class="dv">6</span>),(<span class="op">-</span><span class="fl">2.5</span>,<span class="fl">8.0</span>),(<span class="op">-</span><span class="dv">6</span>,<span class="dv">3</span>),(<span class="op">-</span><span class="fl">1.5</span>,<span class="fl">2.5</span>))</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>ll  <span class="op">=</span> [<span class="st">'Mstar'</span>, <span class="st">'Mhalo'</span>, <span class="st">'Rd'</span>, <span class="st">'c'</span>, <span class="st">'L1'</span>, <span class="st">'L2'</span>, <span class="st">'L3'</span>, <span class="st">'L4'</span>]</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>corner.corner(dd, <span class="bu">range</span><span class="op">=</span>rr2, smooth<span class="op">=</span><span class="fl">0.75</span>, smooth1d<span class="op">=</span><span class="fl">0.75</span>, labels<span class="op">=</span>ll)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-10-07-variational-autoencoder-rotcurves_files/figure-html/cell-19-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>Ok, now this corner plot has a lot of information…let’s breakdown the most important ones:</p>
+<ul>
+<li>the first 4 blocks of this corner plot are relative to the physical parameters <code>(ms,mh,rd,cc)</code> and show the marginal distribution of each of these parameters and how they are correlated with each other.</li>
+<li>the last 4 blocks, instead, are relative to the 4 latent parameters <code>(L1,L2,L3,L4)</code>, and again show the marginal distribution of each and their mutual correlations - this is equivalent to the corner plot just above (in that case this was plotted in orange colour)</li>
+<li>the 4x4 sub-block on the lower-left corner is possibly the most interesting one as it is the “mixed” block that highlights the relation between the physical and latent parameters. Each of these 16 panels show the correlation of one of the physical parameters with one of the latent ones. We can see that there are several significant correlations (e.g.&nbsp;<code>ms-L1</code>, <code>mh-L2</code>, <code>rd-L3</code>), meaning that these two sets are not independent.</li>
+</ul>
+</section>
+<section id="generating-new-realistic-data" class="level3">
+<h3 class="anchored" data-anchor-id="generating-new-realistic-data">Generating new realistic data</h3>
+<p>Now that we have a working approximation of the distribution in the latent space it is easy to use the VAE to generate new rotation curves. We will showcase now a quite simplistic way to do it, which is by assuming that we can represent the latent space with a 4-dimensional Gaussian, even though we have seen in the plots above that the actual distribution is more complex.</p>
+<p>We consider the means <span class="math inline">\(\mu_i\)</span> that the <code>encoder</code> derives for the full training set and we take the mean and standard deviation of these. We use these two parameters to define a normal distribution</p>
+<div class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>size<span class="op">=</span><span class="dv">500</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>dd <span class="op">=</span> torch.distributions.normal.Normal(msm.mean(dim<span class="op">=</span><span class="dv">0</span>), msm.std(dim<span class="op">=</span><span class="dv">0</span>))</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>new_code <span class="op">=</span> dd.sample(torch.Size([size]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Let’s make a comparison by plotting the marginalised distributions of the 4 latent parameters with that of the normal distribution that we are assuming</p>
+<div class="cell" data-execution_count="29">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">3</span>), ncols<span class="op">=</span><span class="dv">4</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>bins<span class="op">=</span>[np.linspace(rr[<span class="dv">0</span>][<span class="dv">0</span>],rr[<span class="dv">0</span>][<span class="dv">1</span>],<span class="dv">20</span>), np.linspace(rr[<span class="dv">1</span>][<span class="dv">0</span>], rr[<span class="dv">1</span>][<span class="dv">1</span>],<span class="dv">20</span>), </span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>      np.linspace(rr[<span class="dv">2</span>][<span class="dv">0</span>],rr[<span class="dv">2</span>][<span class="dv">1</span>],<span class="dv">20</span>), np.linspace(rr[<span class="dv">3</span>][<span class="dv">0</span>], rr[<span class="dv">3</span>][<span class="dv">1</span>],<span class="dv">20</span>)]</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">4</span>):</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    ax[i].hist(msm[:,i].numpy(), bins<span class="op">=</span>bins[i], density<span class="op">=</span><span class="va">True</span>, label<span class="op">=</span><span class="st">'data'</span>)<span class="op">;</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    ax[i].hist(new_code[:,i].numpy(), bins<span class="op">=</span>bins[i], histtype<span class="op">=</span><span class="st">'step'</span>, lw<span class="op">=</span><span class="dv">2</span>, density<span class="op">=</span><span class="va">True</span>, </span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>               label<span class="op">=</span><span class="st">'$\mathcal</span><span class="sc">{N}</span><span class="st">$'</span><span class="op">+</span><span class="st">'-approx'</span>)<span class="op">;</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> i<span class="op">==</span><span class="dv">0</span>: ax[i].legend(loc<span class="op">=</span><span class="st">'upper right'</span>, frameon<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    ax[i].set_xlabel(<span class="st">'L</span><span class="sc">%1d</span><span class="st">'</span><span class="op">%</span>(i<span class="op">+</span><span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-10-07-variational-autoencoder-rotcurves_files/figure-html/cell-22-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>Quite a big difference!</p>
+<p>However, this is not an issue since we are just using a normal distribution since it is convenient to sample and for us it is just a means to generate plausible code to be interpreted by the <code>decoder</code>. As a matter of fact, by doing this we are able to generate quite a new variety of possible galaxy rotation curves.</p>
+<div class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">6</span>,<span class="dv">4</span>))</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> v <span class="kw">in</span> datascale(vae.decoder(new_code),xmean,xstd)[:<span class="dv">100</span>]: ax.plot(cm.rad, v.detach().numpy())</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'radius'</span>)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'velocity'</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-10-07-variational-autoencoder-rotcurves_files/figure-html/cell-23-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>With a bit on work on the reparametrization trick, we can relax the assumption that the distribution in the latent space is of a multi-variate, but uncorrelated, normal. In practice, instead of having just 4 means and 4 variances as output of the <code>encoder</code> step, we also add 6 covariances, so that we can define the full non-zero covariance matrix of the multi-variate normal in the latent space.</p>
+<p>Unfortunately this require quite a bit more math on the reparametrization trick, which is not anymore just <span class="math inline">\(\epsilon*\sigma+\mu\)</span>, but where the full covariance matrix is used. This calculation requires, among other things, to derive the square root of a matrix, for which we employ the SVD decomposition: if <span class="math inline">\(A = U\,{\rm diag}(s)\,V^{\rm T}\)</span>, where <span class="math inline">\(A, U, V \in \mathbb{R}^{n, n}\)</span>, <span class="math inline">\(s\in\mathbb{R}^n\)</span>, and diag<span class="math inline">\((s)\)</span> is a diagonal matrix with the elements of <span class="math inline">\(s\)</span> as diagonal, then <span class="math inline">\(\sqrt{A} = U\,{\rm diag}\left(\sqrt{s}\right)\,V^{\rm T}\)</span>.</p>
+<div class="cell" data-execution_count="112">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> VariationalAutoEncoder(nn.Module):</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, ninp, <span class="op">**</span>kwargs):</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.encodeLayer1 <span class="op">=</span> nn.Linear(in_features<span class="op">=</span>ninp, out_features<span class="op">=</span><span class="dv">32</span>)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.encodeLayer2 <span class="op">=</span> nn.Linear(in_features<span class="op">=</span><span class="dv">32</span>,   out_features<span class="op">=</span><span class="dv">16</span>)</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.encodeOut    <span class="op">=</span> nn.Linear(in_features<span class="op">=</span><span class="dv">16</span>,   out_features<span class="op">=</span><span class="dv">14</span>)</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.decodeLayer1 <span class="op">=</span> nn.Linear(in_features<span class="op">=</span><span class="dv">4</span>,    out_features<span class="op">=</span><span class="dv">16</span>)</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.decodeLayer2 <span class="op">=</span> nn.Linear(in_features<span class="op">=</span><span class="dv">16</span>,   out_features<span class="op">=</span><span class="dv">32</span>)</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.decodeOut    <span class="op">=</span> nn.Linear(in_features<span class="op">=</span><span class="dv">32</span>,   out_features<span class="op">=</span>ninp)</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.ELBO_loss <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> encoder(<span class="va">self</span>, x):       </span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>        mean, logvar, covs <span class="op">=</span> torch.split(<span class="va">self</span>.encodeOut(F.relu(<span class="va">self</span>.encodeLayer2(F.relu(<span class="va">self</span>.encodeLayer1(x))))), </span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>                                         [<span class="dv">4</span>, <span class="dv">4</span>, <span class="dv">6</span>], dim<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> mean, logvar, covs</span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> decoder(<span class="va">self</span>, encoded): <span class="cf">return</span> <span class="va">self</span>.decodeOut(F.relu(<span class="va">self</span>.decodeLayer2(F.relu(<span class="va">self</span>.decodeLayer1(encoded)))))</span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> reparametrize(<span class="va">self</span>, mean, m_cov):</span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>        eps <span class="op">=</span> tensor(rng.normal(size<span class="op">=</span>mean.shape), dtype<span class="op">=</span>torch.<span class="bu">float</span>)</span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a><span class="co">#         return eps * var.sqrt() + mean</span></span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>        <span class="co"># find matrix square root with SVD decomposition</span></span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>        <span class="co"># https://math.stackexchange.com/questions/3820169/a-is-a-symmetric-positive-definite-matrix-it-has-square-root-using-svd?noredirect=1&amp;lq=1</span></span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>        U,S,V <span class="op">=</span> torch.svd(m_cov)                                             <span class="co"># A       = U diag(S) V.T</span></span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>        dS <span class="op">=</span> torch.stack([torch.diag(S[i,:]) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(S.shape[<span class="dv">0</span>])])    <span class="co"># sqrt(A) = U diag(sqrt(S)) V.T</span></span>
+<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>        cov_sqrt <span class="op">=</span> torch.einsum(<span class="st">'bij,bkj-&gt;bik'</span>,torch.einsum(<span class="st">'bij,bjk-&gt;bik'</span>,U,dS.sqrt()),V)</span>
+<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> torch.einsum(<span class="st">'bij,bi-&gt;bj'</span>, cov_sqrt, eps) <span class="op">+</span> mean </span>
+<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _ELBO(<span class="va">self</span>, x, decoded, mean, m_cov, var):</span>
+<span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a>        mseloss <span class="op">=</span> nn.MSELoss(reduction<span class="op">=</span><span class="st">'sum'</span>)</span>
+<span id="cb21-32"><a href="#cb21-32" aria-hidden="true" tabindex="-1"></a>        logpx_z <span class="op">=</span> <span class="op">-</span>mseloss(x, decoded)</span>
+<span id="cb21-33"><a href="#cb21-33" aria-hidden="true" tabindex="-1"></a>        KLdiv <span class="op">=</span> <span class="op">-</span><span class="fl">0.5</span> <span class="op">*</span> (torch.log(m_cov.det()) <span class="op">+</span> <span class="dv">4</span> <span class="op">-</span> torch.<span class="bu">sum</span>(mean<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> var, dim <span class="op">=</span> <span class="dv">1</span>))</span>
+<span id="cb21-34"><a href="#cb21-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> torch.mean((KLdiv <span class="op">-</span> logpx_z)[<span class="op">~</span>(KLdiv <span class="op">-</span> logpx_z).isnan()])  <span class="co"># torch.nanmean</span></span>
+<span id="cb21-35"><a href="#cb21-35" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-36"><a href="#cb21-36" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _get_m_cov(<span class="va">self</span>, logvar, covs):</span>
+<span id="cb21-37"><a href="#cb21-37" aria-hidden="true" tabindex="-1"></a>        <span class="co"># covariance matrix</span></span>
+<span id="cb21-38"><a href="#cb21-38" aria-hidden="true" tabindex="-1"></a>        m_cov <span class="op">=</span> torch.zeros(logvar.shape[<span class="dv">0</span>], <span class="dv">4</span>, <span class="dv">4</span>)</span>
+<span id="cb21-39"><a href="#cb21-39" aria-hidden="true" tabindex="-1"></a>        m_cov[:,[<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>],[<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>]] <span class="op">=</span> logvar.exp()</span>
+<span id="cb21-40"><a href="#cb21-40" aria-hidden="true" tabindex="-1"></a>        m_cov[:,[<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">2</span>],[<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">3</span>]] <span class="op">=</span> covs</span>
+<span id="cb21-41"><a href="#cb21-41" aria-hidden="true" tabindex="-1"></a>        m_cov[:,[<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">3</span>],[<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">2</span>]] <span class="op">=</span> covs</span>
+<span id="cb21-42"><a href="#cb21-42" aria-hidden="true" tabindex="-1"></a><span class="co">#         var = torch.einsum('bii-&gt;bi', m_cov)</span></span>
+<span id="cb21-43"><a href="#cb21-43" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> m_cov, logvar.exp()</span>
+<span id="cb21-44"><a href="#cb21-44" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb21-45"><a href="#cb21-45" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x):</span>
+<span id="cb21-46"><a href="#cb21-46" aria-hidden="true" tabindex="-1"></a>        mean, logvar, covs <span class="op">=</span> <span class="va">self</span>.encoder(x)</span>
+<span id="cb21-47"><a href="#cb21-47" aria-hidden="true" tabindex="-1"></a>        m_cov, var <span class="op">=</span> <span class="va">self</span>._get_m_cov(logvar, covs)</span>
+<span id="cb21-48"><a href="#cb21-48" aria-hidden="true" tabindex="-1"></a>        z <span class="op">=</span> <span class="va">self</span>.reparametrize(mean, m_cov)</span>
+<span id="cb21-49"><a href="#cb21-49" aria-hidden="true" tabindex="-1"></a>        decoded <span class="op">=</span> <span class="va">self</span>.decoder(z)</span>
+<span id="cb21-50"><a href="#cb21-50" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.ELBO_loss <span class="op">=</span> <span class="va">self</span>._ELBO(x, decoded, mean, m_cov, var)</span>
+<span id="cb21-51"><a href="#cb21-51" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb21-52"><a href="#cb21-52" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> decoded</span>
+<span id="cb21-53"><a href="#cb21-53" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-54"><a href="#cb21-54" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> getELBO_loss(<span class="va">self</span>, x):</span>
+<span id="cb21-55"><a href="#cb21-55" aria-hidden="true" tabindex="-1"></a>        mean, logvar, covs <span class="op">=</span> <span class="va">self</span>.encoder(x)</span>
+<span id="cb21-56"><a href="#cb21-56" aria-hidden="true" tabindex="-1"></a>        m_cov, var <span class="op">=</span> <span class="va">self</span>._get_m_cov(logvar, covs)</span>
+<span id="cb21-57"><a href="#cb21-57" aria-hidden="true" tabindex="-1"></a>        z <span class="op">=</span> <span class="va">self</span>.reparametrize(mean, m_cov)</span>
+<span id="cb21-58"><a href="#cb21-58" aria-hidden="true" tabindex="-1"></a>        decoded <span class="op">=</span> <span class="va">self</span>.decoder(z)</span>
+<span id="cb21-59"><a href="#cb21-59" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>._ELBO(x, decoded, mean, m_cov, var)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="113">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>vae <span class="op">=</span> VariationalAutoEncoder(<span class="bu">len</span>(cm.rad))</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Adam and ELBO Loss</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> torch.optim.Adam(vae.parameters(), lr<span class="op">=</span><span class="fl">0.4e-2</span>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1000</span>):</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    ymod <span class="op">=</span> vae.forward(xtrain)</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    loss <span class="op">=</span> vae.ELBO_loss</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    loss.backward()</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>    optimizer.step()</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>    optimizer.zero_grad()</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a><span class="co">#     print (epoch, "train L:%1.2e" % loss, "  valid L:%1.2e" % vae.getELBO_loss(xvalid))</span></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> epoch<span class="op">%</span><span class="dv">50</span><span class="op">==</span><span class="dv">0</span>: <span class="bu">print</span> (epoch, <span class="st">"train L:</span><span class="sc">%1.2e</span><span class="st">"</span> <span class="op">%</span> loss, <span class="st">"  valid L:</span><span class="sc">%1.2e</span><span class="st">"</span> <span class="op">%</span> vae.getELBO_loss(xvalid))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>0 train L:8.26e+04   valid L:2.21e+04
+50 train L:6.80e+03   valid L:1.42e+03
+100 train L:1.47e+03   valid L:4.22e+02
+150 train L:9.56e+02   valid L:2.77e+02
+200 train L:7.22e+02   valid L:1.98e+02
+250 train L:5.99e+02   valid L:2.26e+02
+300 train L:4.56e+02   valid L:1.53e+02
+350 train L:4.18e+02   valid L:1.85e+02
+400 train L:3.63e+02   valid L:1.66e+02
+450 train L:3.53e+02   valid L:1.57e+02
+500 train L:3.33e+02   valid L:1.39e+02
+550 train L:4.32e+02   valid L:1.75e+02
+600 train L:3.07e+02   valid L:1.39e+02
+650 train L:3.10e+02   valid L:1.10e+02
+700 train L:2.77e+02   valid L:1.09e+02
+750 train L:9.70e+02   valid L:3.07e+02
+800 train L:6.58e+02   valid L:3.33e+02
+850 train L:4.97e+02   valid L:2.41e+02
+900 train L:4.53e+02   valid L:1.82e+02
+950 train L:6.56e+02   valid L:3.57e+02</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="114">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> v <span class="kw">in</span> datascale(vae.forward(xvalid),xmean,xstd): plt.plot(cm.rad, v.detach().numpy())</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'radius'</span>)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'velocity'</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-10-07-variational-autoencoder-rotcurves_files/figure-html/cell-29-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="cell" data-execution_count="116">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>msm, lvsm <span class="op">=</span> vae.encoder(xtrain)[<span class="dv">0</span>].detach(), vae.encoder(xtrain)[<span class="dv">1</span>].detach()</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co"># the above are the means and variances obtained by the encoder</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>ns <span class="op">=</span> <span class="dv">100</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>sss <span class="op">=</span> tensor(rng.normal(size<span class="op">=</span>(ns, <span class="dv">4</span>)), dtype<span class="op">=</span>torch.<span class="bu">float</span>) <span class="op">*</span> torch.exp(lvsm[<span class="dv">0</span>] <span class="op">*</span> <span class="fl">0.5</span>) <span class="op">+</span> msm[<span class="dv">0</span>]</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, msm.shape[<span class="dv">0</span>]):</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    sss <span class="op">=</span> torch.vstack((sss, tensor(rng.normal(size<span class="op">=</span>(ns, <span class="dv">4</span>)), dtype<span class="op">=</span>torch.<span class="bu">float</span>) <span class="op">*</span> torch.exp(lvsm[i] <span class="op">*</span> <span class="fl">0.5</span>) <span class="op">+</span> msm[i]))</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (sss.shape)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>torch.Size([160000, 4])</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="120">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>rr <span class="op">=</span> ((<span class="op">-</span><span class="dv">25</span>,<span class="dv">30</span>),(<span class="op">-</span><span class="dv">40</span>,<span class="dv">15</span>),(<span class="op">-</span><span class="dv">30</span>,<span class="dv">10</span>),(<span class="op">-</span><span class="dv">20</span>,<span class="dv">6</span>))</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> corner.corner(sss.numpy(), <span class="bu">range</span><span class="op">=</span>rr, hist_kwargs<span class="op">=</span>{<span class="st">"density"</span>:<span class="va">True</span>})<span class="op">;</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> corner.corner(msm.numpy(), <span class="bu">range</span><span class="op">=</span>rr, color<span class="op">=</span><span class="st">'C1'</span>, fig<span class="op">=</span>fig, hist_kwargs<span class="op">=</span>{<span class="st">"density"</span>:<span class="va">True</span>})<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-10-07-variational-autoencoder-rotcurves_files/figure-html/cell-31-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="cell" data-execution_count="122">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># stacking the tensor of phsyical parameters with that of the means derived by the encoder</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>dd <span class="op">=</span> torch.hstack((torch.from_numpy(np.log10(partrain)), msm)).numpy()</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>rr <span class="op">=</span> ((<span class="dv">9</span>,<span class="dv">12</span>),(<span class="fl">10.3</span>,<span class="fl">13.6</span>),(<span class="op">-</span><span class="fl">1.0</span>,<span class="fl">1.7</span>),(<span class="fl">0.5</span>,<span class="fl">1.4</span>),(<span class="op">-</span><span class="dv">25</span>,<span class="dv">30</span>),(<span class="op">-</span><span class="dv">40</span>,<span class="dv">15</span>),(<span class="op">-</span><span class="dv">30</span>,<span class="dv">10</span>),(<span class="op">-</span><span class="dv">20</span>,<span class="dv">6</span>))</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>ll <span class="op">=</span> [<span class="st">'Mstar'</span>, <span class="st">'Mhalo'</span>, <span class="st">'Rd'</span>, <span class="st">'c'</span>, <span class="st">'L1'</span>, <span class="st">'L2'</span>, <span class="st">'L3'</span>, <span class="st">'L4'</span>]</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>corner.corner(dd, <span class="bu">range</span><span class="op">=</span>rr, smooth<span class="op">=</span><span class="fl">0.75</span>, smooth1d<span class="op">=</span><span class="fl">0.75</span>, labels<span class="op">=</span>ll)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-10-07-variational-autoencoder-rotcurves_files/figure-html/cell-32-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

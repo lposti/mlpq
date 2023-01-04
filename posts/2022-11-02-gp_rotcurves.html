@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.280">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Lorenzo Posti">
+<meta name="dcterms.date" content="2022-11-02">
+<meta name="description" content="Correlations between velocity measurements in disk galaxy rotation curves are usually neglected when fitting dynamical models. This notebook, which accompanies the paper Posti (2022), Res. Notes AAS, 6, 233, shows how data correlations can be taken into account in rotation curve decompositions using Gaussian Processes.">
+
+<title>Lorenzo Posti’s Machine Learning Quarto blog - Rotation curve decompositions with Gaussian Processes: taking into account data correlations leads to unbiased results</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">Lorenzo Posti’s Machine Learning Quarto blog</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html">
+ <span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/lposti/"><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://scholar.google.com/citations?user=fDDcGdwAAAAJ&amp;hl=en"><i class="bi bi-mortarboard-fill" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://ui.adsabs.harvard.edu/search/q=docs(library%2FfCiUp3W_T7qXYNboezCKAg)&amp;sort=date%20desc%2C%20bibcode%20desc&amp;p_=0"><i class="bi bi-book-half" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Rotation curve decompositions with Gaussian Processes: taking into account data correlations leads to unbiased results</h1>
+                  <div>
+        <div class="description">
+          Correlations between velocity measurements in disk galaxy rotation curves are usually neglected when fitting dynamical models. This notebook, which accompanies the paper <a href="https://iopscience.iop.org/article/10.3847/2515-5172/aca0df">Posti (2022), Res. Notes AAS, 6, 233</a>, shows how data correlations can be taken into account in rotation curve decompositions using Gaussian Processes.
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">gaussian_processes</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Lorenzo Posti </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">November 2, 2022</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#attribution-license" id="toc-attribution-license" class="nav-link active" data-scroll-target="#attribution-license">Attribution &amp; License</a></li>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#data" id="toc-data" class="nav-link" data-scroll-target="#data">Data</a>
+  <ul class="collapse">
+  <li><a href="#definitions-of-functions-for-curve-decomposition" id="toc-definitions-of-functions-for-curve-decomposition" class="nav-link" data-scroll-target="#definitions-of-functions-for-curve-decomposition">Definitions of functions for curve decomposition</a></li>
+  <li><a href="#rotation-curve-data-for-ngc-2403" id="toc-rotation-curve-data-for-ngc-2403" class="nav-link" data-scroll-target="#rotation-curve-data-for-ngc-2403">Rotation curve data for NGC 2403</a></li>
+  </ul></li>
+  <li><a href="#models-with-or-without-gps" id="toc-models-with-or-without-gps" class="nav-link" data-scroll-target="#models-with-or-without-gps">Models with or without GPs</a>
+  <ul class="collapse">
+  <li><a href="#gaussian-processes" id="toc-gaussian-processes" class="nav-link" data-scroll-target="#gaussian-processes">Gaussian Processes</a></li>
+  <li><a href="#numpyro-models" id="toc-numpyro-models" class="nav-link" data-scroll-target="#numpyro-models"><code>numpyro</code> models</a></li>
+  <li><a href="#running-the-model-without-gp-i.e.-assuming-independent-datapoints" id="toc-running-the-model-without-gp-i.e.-assuming-independent-datapoints" class="nav-link" data-scroll-target="#running-the-model-without-gp-i.e.-assuming-independent-datapoints">Running the model without GP, i.e.&nbsp;assuming independent datapoints</a></li>
+  <li><a href="#running-the-model-with-gp-i.e.-taking-into-account-data-correlations" id="toc-running-the-model-with-gp-i.e.-taking-into-account-data-correlations" class="nav-link" data-scroll-target="#running-the-model-with-gp-i.e.-taking-into-account-data-correlations">Running the model with GP, i.e.&nbsp;taking into account data correlations</a></li>
+  <li><a href="#comparing-the-predictions-of-the-two-models" id="toc-comparing-the-predictions-of-the-two-models" class="nav-link" data-scroll-target="#comparing-the-predictions-of-the-two-models">Comparing the predictions of the two models</a></li>
+  <li><a href="#correlation-matrix" id="toc-correlation-matrix" class="nav-link" data-scroll-target="#correlation-matrix">Correlation matrix</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+<p>#hide Copyright (c) 2022, Lorenzo Posti All rights reserved.</p>
+<p>This source code is licensed under the BSD-style license found in the license_notebooks file in the root directory of this source tree.</p>
+<section id="attribution-license" class="level2">
+<h2 class="anchored" data-anchor-id="attribution-license">Attribution &amp; License</h2>
+<p>If you use parts of the code found in this notebook please cite the paper <a href="https://iopscience.iop.org/article/10.3847/2515-5172/aca0df">Posti (2022), Res. Notes AAS, 6, 233</a>.</p>
+<p>Copyright (c) 2022, Lorenzo Posti. The code is distributed under BSD-style license and it can be copied and used.</p>
+</section>
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>Galaxy rotation curves are usually modelled by assuming that each datapoint in the curve is independent from the others. However, this is naturally just a first order approximation, since observational effects such due to geometrical projection and resolution, as well as physical effects such as non-circular motions, can make the velocities measured in two adjacent annnuli significantly correlated.</p>
+<p>In this notebook I use the rotation curve of NGC 2403 as a test case to show how to include Gaussian Processes (GPs) in rotation curve decomposition models, in order to account for underlying data correlations. More details can be found in the accompanying paper <a href="https://iopscience.iop.org/article/10.3847/2515-5172/aca0df">Posti (2022), Res. Notes AAS, 6, 233</a>.</p>
+<div class="cell" data-execution_count="1">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pylab <span class="im">as</span> plt</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mpl_toolkits.axes_grid1 <span class="im">import</span> make_axes_locatable</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jaxopt</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> tinygp <span class="im">import</span> GaussianProcess, kernels</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpyro</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> arviz</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> corner</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>jax.config.update(<span class="st">"jax_enable_x64"</span>, <span class="va">True</span>)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> warnings</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>warnings.filterwarnings(<span class="st">'ignore'</span>)</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> rc</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>rc(<span class="st">'text'</span>, usetex<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config Completer.use_jedi <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>matplotlib inline</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="data" class="level2">
+<h2 class="anchored" data-anchor-id="data">Data</h2>
+<p>Here I introduce the data for the galaxy NGC 2403 and the functions needed to work with Eq. (1) in the paper.</p>
+<p>Note that the code below works also for any other galaxy whose data are formatted in the same way, e.g.&nbsp;it works with no modifications needed for all galaxies in the <a href="http://astroweb.cwru.edu/SPARC/">SPARC</a> catalog <a href="https://ui.adsabs.harvard.edu/abs/2016AJ....152..157L/abstract">(Lelli et al.&nbsp;2016)</a>.</p>
+<section id="definitions-of-functions-for-curve-decomposition" class="level3">
+<h3 class="anchored" data-anchor-id="definitions-of-functions-for-curve-decomposition">Definitions of functions for curve decomposition</h3>
+<p>I start with some definitions to specify <span class="math inline">\(V_{\rm DM}(R)\)</span>, the contribution of DM to the circular velocity in Eq. (1). I assume <a href="https://ui.adsabs.harvard.edu/abs/1996ApJ...462..563N/abstract">NFW</a> profiles for the DM halos, which are specified by two parameters: halo mass <span class="math inline">\(M_{\rm h}\)</span> and concentration <span class="math inline">\(c\)</span>. <span class="math inline">\(M_{\rm h}\)</span> is the virial mass defined with a critical overdensity of <span class="math inline">\(\Delta_{\rm c}=200\)</span>.</p>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>G <span class="op">=</span> <span class="fl">4.301e-9</span> <span class="co"># gravitational constant, in Mpc km^2 s^-2 Msun^-1</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>H <span class="op">=</span> <span class="fl">70.</span>      <span class="co"># Hubble's constant, in km s^-1 Mpc^-1</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>Dc<span class="op">=</span> <span class="fl">200.</span>     <span class="co"># critical overdensity</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Note that below I use <code>jax</code>, and not <code>numpy</code>, to define these functions. This is needed in order to do model inference with <code>numpyro</code>.</p>
+<div class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># accessory function for NFW halos</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> jax_fc(x): <span class="cf">return</span> jnp.log(<span class="dv">1</span><span class="op">+</span>x)<span class="op">-</span>x<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>x)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># definitions of virial velocity and virial radius</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> jax_Vvir(Mh): <span class="cf">return</span> jnp.sqrt((Dc<span class="op">*</span>(H)<span class="op">**</span><span class="dv">2</span><span class="op">/</span><span class="dv">2</span>)<span class="op">**</span>(<span class="fl">1.</span><span class="op">/</span><span class="fl">3.</span>) <span class="op">*</span> (G<span class="op">*</span>Mh)<span class="op">**</span>(<span class="fl">2.</span><span class="op">/</span><span class="fl">3.</span>))</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> jax_Rvir(Mh):</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    rho_hat <span class="op">=</span> <span class="fl">4.</span> <span class="op">/</span> <span class="fl">3.</span> <span class="op">*</span> np.pi <span class="op">*</span> Dc <span class="op">*</span> (<span class="fl">3.</span> <span class="op">*</span> (H)<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> (<span class="fl">8.</span> <span class="op">*</span> np.pi <span class="op">*</span> G))</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">1e3</span> <span class="op">*</span> ((Mh <span class="op">/</span> rho_hat)<span class="op">**</span>(<span class="fl">1.</span><span class="op">/</span><span class="fl">3.</span>))</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co"># V_DM(R) for an NFW halo</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> jax_vhalo(params, R):</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    Mh, cc <span class="op">=</span> <span class="dv">10</span><span class="op">**</span>params[<span class="st">'log_mh'</span>], <span class="dv">10</span><span class="op">**</span>params[<span class="st">'log_c'</span>]    </span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    rv <span class="op">=</span> jax_Rvir(Mh)</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> jnp.sqrt(jax_Vvir(Mh)<span class="op">**</span><span class="dv">2</span><span class="op">*</span>rv<span class="op">/</span>R<span class="op">*</span>jax_fc(cc<span class="op">*</span>R<span class="op">/</span>rv)<span class="op">/</span>jax_fc(cc)) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Finally, below I implement the model rotation curve in Eq. (1). Two things are worth pointing out: - I use a linear interpolation for the baryonic part of the curve, since I assume that <span class="math inline">\(V_{\rm gas}\)</span> and <span class="math inline">\(V_\star\)</span> are measured at fixed radii, so that <code>params['r']</code>, <code>params['vg']</code> etc. are expected to be arrays of the same size. - I decomposed <span class="math inline">\(V_\star\)</span> in the bulge and disk components, with two different mass-to-light ratios. While my test case NGC 2403 has no bulge, it is good to include it here for the sake of generality. The <a href="http://astroweb.cwru.edu/SPARC/">SPARC</a> catalog indeed includes stellar circular velocities decomposed into bulge and disk.</p>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> jax_vmod(params, R):</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> jnp.sqrt(jax_vhalo(params, R)<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> <span class="co"># DM</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>                    jnp.interp(R, params[<span class="st">'r'</span>], params[<span class="st">'vg'</span>]<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> <span class="co"># gas</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>                               <span class="dv">10</span><span class="op">**</span>params[<span class="st">'log_mld'</span>]<span class="op">*</span>params[<span class="st">'vd'</span>]<span class="op">**</span><span class="dv">2</span><span class="op">+</span><span class="dv">10</span><span class="op">**</span>params[<span class="st">'log_mlb'</span>]<span class="op">*</span>params[<span class="st">'vb'</span>]<span class="op">**</span><span class="dv">2</span> <span class="co"># stars</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>                              ))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="rotation-curve-data-for-ngc-2403" class="level3">
+<h3 class="anchored" data-anchor-id="rotation-curve-data-for-ngc-2403">Rotation curve data for NGC 2403</h3>
+<p>I take the rotation curve data of NGC 2403 from the <a href="http://astroweb.cwru.edu/SPARC/">SPARC</a> catalog at face value. I include a copy of the file here for convenience.</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>r, vobs, e_vobs, vg, vd, vb, _, _ <span class="op">=</span> np.genfromtxt(<span class="st">'data/NGC2403_rotmod.dat'</span>, unpack<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Let’s plot the data below together with the best-fit model obtained by <a href="https://ui.adsabs.harvard.edu/abs/2019A%26A...626A..56P/abstract">Posti et al.&nbsp;(2019)</a> for reference.</p>
+<div class="cell" data-execution_count="63">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>params <span class="op">=</span> {</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># parameters of the best-fit in Posti et al. (2019)</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'log_mh'</span> : <span class="fl">11.4</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">'log_c'</span>  : <span class="fl">1.14</span>,</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'log_mld'</span>: <span class="op">-</span><span class="fl">0.377</span>,</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">'log_mlb'</span>: <span class="op">-</span><span class="fl">99.</span>, <span class="co"># this galaxy has no bulge</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># data arrrays</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'r'</span>  : r,</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'vg'</span> : vg,</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">'vd'</span> : vd,</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">'vb'</span> : vb,</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">5</span>))</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>ax.errorbar(r, vobs, yerr<span class="op">=</span>e_vobs, fmt<span class="op">=</span><span class="st">'.'</span>, c<span class="op">=</span><span class="st">'k'</span>, lw<span class="op">=</span><span class="fl">0.5</span>, label<span class="op">=</span><span class="vs">r'$\rm data$'</span>)</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>ax.plot(r, vg, <span class="st">':'</span>, c<span class="op">=</span><span class="st">'tab:cyan'</span>, label<span class="op">=</span><span class="vs">r'$\rm gas$'</span>)</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>ax.plot(r, np.sqrt(<span class="dv">10</span><span class="op">**</span>params[<span class="st">'log_mld'</span>]<span class="op">*</span>vd<span class="op">**</span><span class="dv">2</span><span class="op">+</span><span class="dv">10</span><span class="op">**</span>params[<span class="st">'log_mlb'</span>]<span class="op">*</span>vb<span class="op">**</span><span class="dv">2</span>), <span class="st">'--'</span>, c<span class="op">=</span><span class="st">'tab:olive'</span>, label<span class="op">=</span><span class="vs">r'$\rm stars$'</span>)</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>ax.plot(r, jax_vhalo(params, r), <span class="st">'-.'</span>, c<span class="op">=</span><span class="st">'tab:purple'</span>, label<span class="op">=</span><span class="vs">r'$\rm DM$'</span>)</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>ax.plot(r, jax_vmod(params, r), c<span class="op">=</span><span class="st">'grey'</span>, lw<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="vs">r'$\rm fit$'</span>)</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="vs">r"$\rm radius/kpc$"</span>, fontsize<span class="op">=</span><span class="dv">18</span>)</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="vs">r"$\rm velocity/km\,s^{-1}$"</span>, fontsize<span class="op">=</span><span class="dv">18</span>)</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="vs">r"$\rm NGC 2403$"</span>, fontsize<span class="op">=</span><span class="dv">20</span>)<span class="op">;</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>ax.legend(loc<span class="op">=</span><span class="st">'lower right'</span>, fontsize<span class="op">=</span><span class="dv">14</span>)<span class="op">;</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>ax.tick_params(labelsize<span class="op">=</span><span class="dv">14</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-11-02-gp_rotcurves_files/figure-html/cell-9-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+</section>
+<section id="models-with-or-without-gps" class="level2">
+<h2 class="anchored" data-anchor-id="models-with-or-without-gps">Models with or without GPs</h2>
+<p>Let’s now get to the modelling side of things. I set up two models here. The first one is analogous to <a href="https://ui.adsabs.harvard.edu/abs/2019A%26A...626A..56P/abstract">Posti et al.&nbsp;(2019)</a>, as well as many other works in this context (e.g.&nbsp;<a href="https://ui.adsabs.harvard.edu/abs/2017MNRAS.466.1648K/abstract">Katz et al.&nbsp;2017</a>, <a href="https://ui.adsabs.harvard.edu/abs/2020ApJS..247...31L/abstract">Li et al.&nbsp;2020</a>, <a href="https://ui.adsabs.harvard.edu/abs/2022MNRAS.514.3329M/abstract">Mancera-Pina et al.&nbsp;2022</a>, <a href="https://ui.adsabs.harvard.edu/abs/2022arXiv220702906D/abstract">di Teodoro et al.&nbsp;2022</a>), it has a <span class="math inline">\(\chi^2\)</span> likelihood and it implicitly assumes that the rotation curve datapoints are independent. The second one generalizes this model by using GPs to take into account data correlations. I recommend the recent review by <a href="https://ui.adsabs.harvard.edu/abs/2022arXiv220908940A/abstract">Aigrain &amp; Foreman-Mackey (2022)</a>, in particular their first section, as an introduction to GPs.</p>
+<p>I use the library <a href="https://tinygp.readthedocs.io/en/stable/"><code>tinygp</code></a> to set up my GP regression problem and I use <a href="https://num.pyro.ai/en/stable/"><code>numpyro</code></a> to sample the posterior distribution. In particular, I use and Hamiltonian Monte Carlo sampler called <em>No U-Turn Sampler</em> (NUTS).</p>
+<section id="gaussian-processes" class="level3">
+<h3 class="anchored" data-anchor-id="gaussian-processes">Gaussian Processes</h3>
+<p>Let’s generate GPs with an <code>Exp-Squared</code> kernel with two parameters, an amplitude <span class="math inline">\(A_k\)</span> and a scale <span class="math inline">\(s_k\)</span>, i.e. <span class="math display">\[
+k(R_i, R_j) = A_k \exp\left[-\frac{1}{2}\left(\frac{|R_i-R_j|}{s_k}\right)^2\right]
+\]</span> This kernel is said to be <em>stationary</em> because it depends only on the distance between two points <span class="math inline">\(|R_i-R_j|\)</span>.</p>
+<div class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> build_gp(params, x, yerr):</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    kernel <span class="op">=</span> <span class="dv">10</span><span class="op">**</span>params[<span class="st">'log_amp'</span>]<span class="op">*</span>kernels.ExpSquared(<span class="dv">10</span><span class="op">**</span>params[<span class="st">'log_scl'</span>], distance<span class="op">=</span>kernels.distance.L1Distance())</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> GaussianProcess(kernel, </span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>                           x, </span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>                           diag<span class="op">=</span>yerr<span class="op">**</span><span class="dv">2</span>, </span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>                           mean<span class="op">=</span>partial(jax_vmod, params)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>                          )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="numpyro-models" class="level3">
+<h3 class="anchored" data-anchor-id="numpyro-models"><code>numpyro</code> models</h3>
+<p>I now set up the model’s posterior distribution to be sampled by <code>numpyro</code>, thus it is a function containing <code>pyro</code> primitives.</p>
+<p>The model starts by defining the priors on the physical parameters (<span class="math inline">\(\theta_V\)</span> in the paper). I use: - uninformative prior on <span class="math inline">\(\log\,M_{\rm h}\)</span> - Gaussian on <span class="math inline">\(\log\,c\)</span>, with mean and width following the <span class="math inline">\(c-M_{\rm h}\)</span> relation found in cosmological simulations <a href="https://ui.adsabs.harvard.edu/abs/2014MNRAS.441.3359D/abstract">(Dutton &amp; Maccio’ 2014)</a> - Gaussian on <span class="math inline">\(\log\,(M/L)_{\rm D}\)</span>, centred on <span class="math inline">\((M/L)_{\rm D}=0.5\)</span> and with standard deviation of 0.2 dex (compatible with stellar population synthesis models, e.g.&nbsp;<a href="https://ui.adsabs.harvard.edu/abs/2016AJ....152..157L/abstract">Lelli et al.&nbsp;2016</a>) - Gaussian on <span class="math inline">\(\log\,(M/L)_{\rm B}\)</span>, centred on <span class="math inline">\((M/L)_{\rm B}=0.7\)</span> and with standard deviation of 0.2 dex (again, see <a href="https://ui.adsabs.harvard.edu/abs/2016AJ....152..157L/abstract">Lelli et al.&nbsp;2016</a>). Note that <em>this is not used</em> in the case of NGC 2403</p>
+<p>After the definition of the priors the function branches out: one branch with GPs and one without. I borrowed this structure from the <a href="https://github.com/dfm/araa-gps/blob/main/src/scripts/transit.ipynb">transit example</a> of Fig. 3 in <a href="https://ui.adsabs.harvard.edu/abs/2022arXiv220908940A/abstract">Aigrain &amp; Foreman-Mackey (2022)</a>.</p>
+<p>The branch with GP also implement additional priors for the two parameters of the kernel (<span class="math inline">\(\theta_k\)</span> in the paper), i.e.&nbsp;the amplitude and scale.</p>
+<div class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> model(t, y_err, y, params, use_gp<span class="op">=</span><span class="va">False</span>):</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># priors</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    params[<span class="st">"log_mh"</span>]<span class="op">=</span>numpyro.sample(<span class="st">"log_mh"</span>,numpyro.distributions.Uniform(<span class="fl">8.0</span>,  <span class="fl">14.0</span>)) </span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    params[<span class="st">"log_c"</span>] <span class="op">=</span>numpyro.sample(<span class="st">'log_c'</span>,numpyro.distributions.Normal(<span class="fl">0.905</span><span class="op">-</span><span class="fl">0.101</span><span class="op">*</span>(params[<span class="st">'log_mh'</span>]<span class="op">*</span><span class="fl">0.7</span><span class="op">-</span><span class="dv">12</span>),<span class="fl">0.11</span>)) </span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    params[<span class="st">"log_mld"</span>]<span class="op">=</span>numpyro.sample(<span class="st">'log_mld'</span>,numpyro.distributions.Normal(<span class="op">-</span><span class="fl">0.3</span>, <span class="fl">0.2</span>)) </span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    params[<span class="st">"log_mlb"</span>]<span class="op">=</span>numpyro.sample(<span class="st">'log_mlb'</span>,numpyro.distributions.Normal(<span class="op">-</span><span class="fl">0.15</span>, <span class="fl">0.2</span>)) </span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> use_gp:</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">###################</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        <span class="co"># branch WITH GPs #</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>        <span class="co">###################</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        <span class="co"># define kernel parameters</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        params[<span class="st">"log_amp"</span>] <span class="op">=</span> numpyro.sample(<span class="st">"log_amp"</span>, numpyro.distributions.Uniform(<span class="op">-</span><span class="fl">4.0</span>, <span class="fl">5.0</span>))</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        params[<span class="st">"log_scl"</span>] <span class="op">=</span> numpyro.sample(<span class="st">"log_scl"</span>, numpyro.distributions.Uniform(<span class="op">-</span><span class="fl">2.0</span>, <span class="fl">3.0</span>))</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>        <span class="co"># generate the GP</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>        gp <span class="op">=</span> build_gp(params, t, y_err)</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>        <span class="co"># sample the posterior</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>        numpyro.sample(<span class="st">"y"</span>, gp.numpyro_dist(), obs<span class="op">=</span>y)</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>        <span class="co"># calculate the predicted V_rot (i.e. the mean function) of the model</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>        mu <span class="op">=</span> gp.mean_function(params[<span class="st">"r_grid"</span>])</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>        numpyro.deterministic(<span class="st">"mu"</span>, mu)</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>        <span class="co">######################</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>        <span class="co"># branch WITHOUT GPs #</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>        <span class="co">######################</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>        <span class="co"># sample the posterior</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>        numpyro.sample(<span class="st">"y"</span>, numpyro.distributions.Normal(jax_vmod(params, t), y_err), obs<span class="op">=</span>y)</span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>        <span class="co"># calculate properties of the model</span></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>        numpyro.deterministic(<span class="st">"mu"</span>, jax_vmod(params, params[<span class="st">"r_grid"</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="running-the-model-without-gp-i.e.-assuming-independent-datapoints" class="level3">
+<h3 class="anchored" data-anchor-id="running-the-model-without-gp-i.e.-assuming-independent-datapoints">Running the model without GP, i.e.&nbsp;assuming independent datapoints</h3>
+<p>I start by sampling the posterior of the model akin to that of <a href="https://ui.adsabs.harvard.edu/abs/2019A%26A...626A..56P/abstract">Posti et al.&nbsp;(2019)</a>, i.e.&nbsp;assuming that the points in the curve are independent.</p>
+<p>I’m using <a href="https://arviz-devs.github.io/arviz/"><code>arviz</code></a> to analyse the posterior sampled by NUTS. In particular, keep an eye on <code>r_hat</code> which is the Gelman-Rubin statistics: for our purposes, we can use <span class="math inline">\({\rm r_{hat}}\simeq 1\)</span> as an indicator that the marginalized posterior on a particular parameter is well determined.</p>
+<div class="cell" data-execution_count="55">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>grid_size <span class="op">=</span> <span class="dv">1000</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>r_grid <span class="op">=</span> jnp.linspace(r.<span class="bu">min</span>(), r.<span class="bu">max</span>(), grid_size) <span class="co"># radial grid on which to predict V_rot(R)</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>params <span class="op">=</span> {<span class="st">"vg"</span>    : vg,</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>          <span class="st">"vd"</span>    : vd,</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>          <span class="st">"vb"</span>    : vb,</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>          <span class="st">"r"</span>     : r,</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>          <span class="st">"r_grid"</span>: r_grid}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="51">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>num_warmup<span class="op">=</span><span class="dv">1000</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>num_samples<span class="op">=</span><span class="dv">3000</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>num_chains<span class="op">=</span><span class="dv">3</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>accept_prob <span class="op">=</span> <span class="fl">0.9</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>sampler_wn <span class="op">=</span> numpyro.infer.MCMC(</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    numpyro.infer.NUTS(</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        model,</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        dense_mass<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        target_accept_prob<span class="op">=</span>accept_prob,</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    num_warmup<span class="op">=</span>num_warmup,</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    num_samples<span class="op">=</span>num_samples,</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    num_chains<span class="op">=</span>num_chains,</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    progress_bar<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>time sampler_wn.run(jax.random.PRNGKey(<span class="dv">11</span>), r, e_vobs, vobs, params)</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>inf_data_wn <span class="op">=</span> arviz.from_numpyro(sampler_wn)</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>arviz.summary(inf_data_wn, var_names<span class="op">=</span>[<span class="st">"log_mh"</span>, <span class="st">"log_c"</span>, <span class="st">"log_mld"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>sample: 100%|███████████████████████████████████████████████████████████████████| 4000/4000 [00:14&lt;00:00, 277.33it/s, 15 steps of size 2.45e-01. acc. prob=0.92]
+sample: 100%|███████████████████████████████████████████████████████████████████| 4000/4000 [00:14&lt;00:00, 281.80it/s, 15 steps of size 2.07e-01. acc. prob=0.95]
+sample: 100%|███████████████████████████████████████████████████████████████████| 4000/4000 [00:13&lt;00:00, 288.30it/s, 15 steps of size 1.95e-01. acc. prob=0.95]</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CPU times: user 43.9 s, sys: 807 ms, total: 44.7 s
+Wall time: 45.7 s</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="51">
+
+<div>
+
+<table class="dataframe table table-sm table-striped">
+  <thead>
+    <tr>
+      <th></th>
+      <th>mean</th>
+      <th>sd</th>
+      <th>hdi_3%</th>
+      <th>hdi_97%</th>
+      <th>mcse_mean</th>
+      <th>mcse_sd</th>
+      <th>ess_bulk</th>
+      <th>ess_tail</th>
+      <th>r_hat</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>log_mh</th>
+      <td>11.325</td>
+      <td>0.014</td>
+      <td>11.298</td>
+      <td>11.351</td>
+      <td>0.000</td>
+      <td>0.000</td>
+      <td>3623.0</td>
+      <td>4045.0</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>log_c</th>
+      <td>1.234</td>
+      <td>0.019</td>
+      <td>1.198</td>
+      <td>1.268</td>
+      <td>0.000</td>
+      <td>0.000</td>
+      <td>3382.0</td>
+      <td>3801.0</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>log_mld</th>
+      <td>-0.542</td>
+      <td>0.045</td>
+      <td>-0.632</td>
+      <td>-0.463</td>
+      <td>0.001</td>
+      <td>0.001</td>
+      <td>3267.0</td>
+      <td>3282.0</td>
+      <td>1.0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+<p>Let’s plot the chains to make sure each parameter is converged</p>
+<div class="cell" data-execution_count="48">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>azLabeller <span class="op">=</span> arviz.labels.MapLabeller(var_name_map<span class="op">=</span>{<span class="st">"log_mh"</span> : <span class="vs">r"$\log\,M_{\rm h}$"</span>,</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>                                                    <span class="st">"log_c"</span>  : <span class="vs">r"$\log\,c$"</span>, </span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>                                                    <span class="st">"log_mld"</span>: <span class="vs">r"$\log\,M/L$"</span>,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                                                    <span class="st">"log_amp"</span>: <span class="vs">r"$A_k$"</span>,</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                                                    <span class="st">"log_scl"</span>: <span class="vs">r"$s_k$"</span>})</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>arviz.plot_trace(inf_data_wn, var_names<span class="op">=</span>[<span class="st">"log_mh"</span>, <span class="st">"log_c"</span>, <span class="st">"log_mld"</span>], figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">9</span>), </span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>                 labeller <span class="op">=</span> azLabeller)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-11-02-gp_rotcurves_files/figure-html/cell-17-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+<section id="running-the-model-with-gp-i.e.-taking-into-account-data-correlations" class="level3">
+<h3 class="anchored" data-anchor-id="running-the-model-with-gp-i.e.-taking-into-account-data-correlations">Running the model with GP, i.e.&nbsp;taking into account data correlations</h3>
+<p>Now, let’s have a look at what happens when GPs come into play. I run exactly the same procedure as before to sample the model’s posterior, but this time I select the branch with <code>use_gp=True</code>. Since now I have two more free parameters, the scale and amplitude of the kernel, I also initialize these two in <code>init_strategy</code>.</p>
+<div class="cell" data-execution_count="41">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>sampler <span class="op">=</span> numpyro.infer.MCMC(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    numpyro.infer.NUTS(</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>        model,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>        dense_mass<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>        target_accept_prob<span class="op">=</span>accept_prob,</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    num_warmup<span class="op">=</span>num_warmup,</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    num_samples<span class="op">=</span>num_samples,</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    num_chains<span class="op">=</span>num_chains,</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    progress_bar<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>time sampler.run(jax.random.PRNGKey(<span class="dv">11</span>), r, e_vobs, vobs, params, use_gp<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>inf_data <span class="op">=</span> arviz.from_numpyro(sampler)</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>arviz.summary(inf_data, var_names<span class="op">=</span>[<span class="st">"log_mh"</span>, <span class="st">"log_c"</span>, <span class="st">"log_mld"</span>, <span class="st">"log_amp"</span>, <span class="st">"log_scl"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>sample: 100%|███████████████████████████████████████████████████████████████████| 4000/4000 [00:29&lt;00:00, 136.37it/s, 15 steps of size 3.46e-01. acc. prob=0.96]
+sample: 100%|████████████████████████████████████████████████████████████████████| 4000/4000 [00:27&lt;00:00, 146.69it/s, 7 steps of size 3.67e-01. acc. prob=0.96]
+sample: 100%|████████████████████████████████████████████████████████████████████| 4000/4000 [00:25&lt;00:00, 159.04it/s, 7 steps of size 4.01e-01. acc. prob=0.94]</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CPU times: user 2min 27s, sys: 2.85 s, total: 2min 30s
+Wall time: 1min 38s</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="41">
+
+<div>
+
+<table class="dataframe table table-sm table-striped">
+  <thead>
+    <tr>
+      <th></th>
+      <th>mean</th>
+      <th>sd</th>
+      <th>hdi_3%</th>
+      <th>hdi_97%</th>
+      <th>mcse_mean</th>
+      <th>mcse_sd</th>
+      <th>ess_bulk</th>
+      <th>ess_tail</th>
+      <th>r_hat</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>log_mh</th>
+      <td>11.491</td>
+      <td>0.076</td>
+      <td>11.353</td>
+      <td>11.642</td>
+      <td>0.001</td>
+      <td>0.001</td>
+      <td>5466.0</td>
+      <td>4897.0</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>log_c</th>
+      <td>1.079</td>
+      <td>0.065</td>
+      <td>0.956</td>
+      <td>1.201</td>
+      <td>0.001</td>
+      <td>0.001</td>
+      <td>5602.0</td>
+      <td>4905.0</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>log_mld</th>
+      <td>-0.326</td>
+      <td>0.075</td>
+      <td>-0.470</td>
+      <td>-0.191</td>
+      <td>0.001</td>
+      <td>0.001</td>
+      <td>5531.0</td>
+      <td>4435.0</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>log_amp</th>
+      <td>1.104</td>
+      <td>0.270</td>
+      <td>0.624</td>
+      <td>1.602</td>
+      <td>0.005</td>
+      <td>0.004</td>
+      <td>3793.0</td>
+      <td>3277.0</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>log_scl</th>
+      <td>-0.018</td>
+      <td>0.087</td>
+      <td>-0.188</td>
+      <td>0.131</td>
+      <td>0.001</td>
+      <td>0.001</td>
+      <td>3788.0</td>
+      <td>3652.0</td>
+      <td>1.0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+<p>And let’s plot again the chains to make sure that every parameter has converged</p>
+<div class="cell" data-execution_count="49">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>arviz.plot_trace(inf_data, var_names<span class="op">=</span>[<span class="st">"log_mh"</span>, <span class="st">"log_c"</span>, <span class="st">"log_mld"</span>, <span class="st">"log_amp"</span>, <span class="st">"log_scl"</span>], figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">15</span>), </span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>                 labeller <span class="op">=</span> azLabeller)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-11-02-gp_rotcurves_files/figure-html/cell-19-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>Everything looks good for both models.</p>
+</section>
+<section id="comparing-the-predictions-of-the-two-models" class="level3">
+<h3 class="anchored" data-anchor-id="comparing-the-predictions-of-the-two-models">Comparing the predictions of the two models</h3>
+<p>Finally, I can compare the posterior distributions of the two models. I use <a href="https://corner.readthedocs.io/en/latest/">corner</a> to plot 1-D and 2-D projections of the posteriors.</p>
+<div class="cell" data-execution_count="75">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>ranges <span class="op">=</span> [(<span class="fl">11.2</span>, <span class="fl">11.8</span>), (<span class="fl">0.8</span>, <span class="fl">1.35</span>), (<span class="op">-</span><span class="fl">0.8</span>,<span class="op">-</span><span class="fl">0.0</span>)] <span class="co"># NGC 2403</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> corner.corner(inf_data_wn, bins<span class="op">=</span><span class="dv">40</span>, <span class="bu">range</span><span class="op">=</span>ranges, </span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>                    color<span class="op">=</span><span class="st">"C0"</span>, var_names<span class="op">=</span>[<span class="st">"log_mh"</span>, <span class="st">"log_c"</span>, <span class="st">"log_mld"</span>], smooth<span class="op">=</span><span class="fl">1.0</span>, smooth1d<span class="op">=</span><span class="fl">1.0</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>                   )</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> corner.corner(inf_data, bins<span class="op">=</span><span class="dv">40</span>, <span class="bu">range</span><span class="op">=</span>ranges, </span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>                    color<span class="op">=</span><span class="st">"C1"</span>, var_names<span class="op">=</span>[<span class="st">"log_mh"</span>, <span class="st">"log_c"</span>, <span class="st">"log_mld"</span>], smooth<span class="op">=</span><span class="fl">1.0</span>, smooth1d<span class="op">=</span><span class="fl">1.0</span>,</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>                    labels<span class="op">=</span>[<span class="st">"$\log\,M_h$"</span>, <span class="st">"$\log\,c$"</span>, <span class="vs">r"$\log\,M/L$"</span>],</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>                    label_kwargs<span class="op">=</span>{<span class="st">"fontsize"</span>:<span class="dv">20</span>}, fig<span class="op">=</span>fig)</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a><span class="co"># make legend</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> fig.axes[<span class="dv">1</span>]</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>key_nn <span class="op">=</span> matplotlib.lines.Line2D([], [], color<span class="op">=</span><span class="st">'C0'</span>,    linestyle<span class="op">=</span><span class="st">'-'</span>, </span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>                                 label<span class="op">=</span><span class="vs">r'$\rm Model\,\,{\bf without\,\,GPs}:\,\,independent\,\,data$'</span>)</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>key_gp <span class="op">=</span> matplotlib.lines.Line2D([], [], color<span class="op">=</span><span class="st">'C1'</span>,   linestyle<span class="op">=</span><span class="st">'-'</span>, </span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>                                 label<span class="op">=</span><span class="vs">r'$\rm Model\,\,{\bf with\,\,GPs}:\,\,correlated\,\,data$'</span>)</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>ax.legend(loc<span class="op">=</span><span class="st">'upper left'</span>, handles<span class="op">=</span>[key_nn, key_gp], fontsize<span class="op">=</span><span class="dv">16</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-11-02-gp_rotcurves_files/figure-html/cell-21-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>Then I can compare the predicted curve decompositions of the two models. Here I get the predictions of the model, excluding the warmup phase during sampling.</p>
+<div class="cell" data-execution_count="56">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>final_shape <span class="op">=</span> (num_chains<span class="op">*</span>(num_samples<span class="op">-</span>num_warmup),grid_size) <span class="co"># shape of the predictions array after removing warmup</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>pred_wn <span class="op">=</span> sampler_wn.get_samples(group_by_chain<span class="op">=</span><span class="va">True</span>)[<span class="st">'mu'</span>][:,num_warmup:,:].reshape(final_shape)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>pred    <span class="op">=</span> sampler.get_samples(group_by_chain<span class="op">=</span><span class="va">True</span>)[<span class="st">'mu'</span>][:,num_warmup:,:].reshape(final_shape)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="79">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>,<span class="dv">8</span>), nrows<span class="op">=</span><span class="dv">2</span>, gridspec_kw<span class="op">=</span>{<span class="st">'hspace'</span>:<span class="dv">0</span>})</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> commons(ax, i, lmh, lc, lmld, lmlb, leg<span class="op">=</span><span class="va">True</span>):</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># rotation curve</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    ax[i].errorbar(r, vobs, yerr<span class="op">=</span>e_vobs, fmt<span class="op">=</span><span class="st">'.'</span>, c<span class="op">=</span><span class="st">'k'</span>, lw<span class="op">=</span><span class="fl">0.5</span>, label<span class="op">=</span><span class="vs">r'$\rm data$'</span>, markersize<span class="op">=</span><span class="dv">4</span>)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    ax[i].plot(r, vg, <span class="st">':'</span>, c<span class="op">=</span><span class="st">'tab:cyan'</span>, label<span class="op">=</span><span class="vs">r'$\rm gas$'</span>)</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    ax[i].plot(r, np.sqrt(<span class="dv">10</span><span class="op">**</span>lmld<span class="op">*</span>vd<span class="op">**</span><span class="dv">2</span><span class="op">+</span><span class="dv">10</span><span class="op">**</span>lmlb<span class="op">*</span>vb<span class="op">**</span><span class="dv">2</span>), <span class="st">'--'</span>, c<span class="op">=</span><span class="st">'tab:olive'</span>, label<span class="op">=</span><span class="vs">r'$\rm stars$'</span>)</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    ax[i].plot(r, jax_vhalo({<span class="st">'log_mh'</span>:lmh, <span class="st">'log_c'</span>:lc}, r), <span class="st">'-.'</span>, c<span class="op">=</span><span class="st">'tab:purple'</span>, label<span class="op">=</span><span class="vs">r'$\rm DM$'</span>)</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> leg: ax[i].legend(loc<span class="op">=</span><span class="st">'lower right'</span>, fontsize<span class="op">=</span><span class="dv">14</span>)</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    ax[i].set_xlabel(<span class="vs">r"$\rm radius/kpc$"</span>, fontsize<span class="op">=</span><span class="dv">18</span>)</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    ax[i].set_ylabel(<span class="vs">r"$\rm velocity/km\,s^{-1}$"</span>, fontsize<span class="op">=</span><span class="dv">18</span>)</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    ax[i].tick_params(direction<span class="op">=</span><span class="st">'inout'</span>, top<span class="op">=</span><span class="va">True</span>, labelsize<span class="op">=</span><span class="dv">14</span>)</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].fill_between(r_grid, np.percentile(pred_wn,<span class="fl">2.1</span>,axis<span class="op">=</span><span class="dv">0</span>), np.percentile(pred_wn,<span class="fl">97.9</span>,axis<span class="op">=</span><span class="dv">0</span>), </span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>                     facecolor<span class="op">=</span><span class="st">'C0'</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].fill_between(r_grid, np.percentile(pred,<span class="fl">2.1</span>,axis<span class="op">=</span><span class="dv">0</span>), np.percentile(pred,<span class="fl">97.9</span>,axis<span class="op">=</span><span class="dv">0</span>), </span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>                     facecolor<span class="op">=</span><span class="st">'C1'</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].plot(r_grid, np.median(pred_wn, axis<span class="op">=</span><span class="dv">0</span>), <span class="st">'C0'</span>)</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].plot(r_grid, np.median(pred, axis<span class="op">=</span><span class="dv">0</span>), <span class="st">'C1'</span>)</span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>commons(ax, <span class="dv">0</span>, <span class="fl">11.325</span>, <span class="fl">1.234</span>, <span class="op">-</span><span class="fl">0.542</span>, <span class="op">-</span><span class="fl">99.</span>)</span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>commons(ax, <span class="dv">1</span>, <span class="fl">11.491</span>, <span class="fl">1.079</span>, <span class="op">-</span><span class="fl">0.326</span>, <span class="op">-</span><span class="fl">99.</span>, leg<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-11-02-gp_rotcurves_files/figure-html/cell-23-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+<section id="correlation-matrix" class="level3">
+<h3 class="anchored" data-anchor-id="correlation-matrix">Correlation matrix</h3>
+<p>Given that the parameters of the kernel <span class="math inline">\(A_k\)</span> and <span class="math inline">\(s_k\)</span> are well constrained by the model, we can have a look at the correlation matrix of the model with GPs.</p>
+<div class="cell" data-execution_count="64">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_kmat(params, x, yerr,):</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    gp <span class="op">=</span> build_gp(params, x, yerr)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    xm1, xm2 <span class="op">=</span> jnp.meshgrid(x,x)</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    zm <span class="op">=</span> np.zeros_like(xm1.flatten())</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(xm1.flatten())):</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>        zm[i]<span class="op">=</span>gp.kernel.evaluate(xm1.flatten()[i], xm2.flatten()[i])</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> zm.reshape((<span class="bu">len</span>(x), <span class="bu">len</span>(x)))</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>zm <span class="op">=</span> get_kmat({<span class="st">"log_amp"</span>:<span class="fl">1.104</span>, <span class="st">"log_scl"</span>:<span class="op">-</span><span class="fl">0.018</span>, <span class="st">'log_mh'</span>:<span class="fl">11.325</span>, <span class="st">'log_c'</span>:<span class="fl">1.234</span>, </span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>               <span class="st">'log_mld'</span>:<span class="op">-</span><span class="fl">0.542</span>, <span class="st">'log_mlb'</span>:<span class="op">-</span><span class="fl">99.</span>, <span class="st">'vg'</span>:vg, <span class="st">'vd'</span>:vd, <span class="st">'vb'</span>:vb, <span class="st">'r'</span>:r}, r, e_vobs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CPU times: user 1min 35s, sys: 2.17 s, total: 1min 37s
+Wall time: 2min</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="65">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plt_mat(ax, zm):</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    im<span class="op">=</span>ax.matshow(zm)</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="st">"$i$"</span>, fontsize<span class="op">=</span><span class="dv">20</span>)</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    ax.set_ylabel(<span class="st">"$j$"</span>, fontsize<span class="op">=</span><span class="dv">20</span>)</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    ax.tick_params(labelsize<span class="op">=</span><span class="dv">14</span>)</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    ax.xaxis.set_label_position(<span class="st">'top'</span>) </span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>    divider <span class="op">=</span> make_axes_locatable(ax)</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>    cax <span class="op">=</span> divider.append_axes(<span class="st">"right"</span>, size<span class="op">=</span><span class="st">"5%"</span>, pad<span class="op">=</span><span class="fl">0.05</span>)</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>    cb <span class="op">=</span> plt.colorbar(im, cax<span class="op">=</span>cax)</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>    cb.set_label(<span class="vs">r"$k(R_i, R_j)$"</span>, fontsize<span class="op">=</span><span class="dv">22</span>)</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>    cb.ax.tick_params(labelsize<span class="op">=</span><span class="dv">16</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="67">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots()</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>plt_mat(ax, zm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-11-02-gp_rotcurves_files/figure-html/cell-27-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>The peculiar 2-block shape of this matrix is due to the combined H<span class="math inline">\(\alpha\)</span>-HI nature of the rotation curve. The optical H<span class="math inline">\(\alpha\)</span> curve samples the inner regions of the galaxy, up to <span class="math inline">\(\sim 5\)</span> kpc, with a finer spatial sampling of 0.1 kpc with respect to the HI rotation curve, which instead has a spacing of 0.5 kpc and is from 5 kpc outwards.</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

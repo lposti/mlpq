@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.280">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Lorenzo Posti">
+<meta name="dcterms.date" content="2022-12-08">
+<meta name="description" content="This notebook presents a minimal python package that I wrote to solve Poisson’s equation in galactic disks. vcdisk is an handy toolbox of essential functions to compute the circular velocity of thick disks and flattened bulges of arbitrary surface density.">
+
+<title>Lorenzo Posti’s Machine Learning Quarto blog - vcdisk: a python package for galaxy rotation curves</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">Lorenzo Posti’s Machine Learning Quarto blog</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html">
+ <span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/lposti/"><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://scholar.google.com/citations?user=fDDcGdwAAAAJ&amp;hl=en"><i class="bi bi-mortarboard-fill" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://ui.adsabs.harvard.edu/search/q=docs(library%2FfCiUp3W_T7qXYNboezCKAg)&amp;sort=date%20desc%2C%20bibcode%20desc&amp;p_=0"><i class="bi bi-book-half" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title"><code>vcdisk</code>: a python package for galaxy rotation curves</h1>
+                  <div>
+        <div class="description">
+          This notebook presents a minimal python package that I wrote to solve Poisson’s equation in galactic disks. <code>vcdisk</code> is an handy toolbox of essential functions to compute the circular velocity of thick disks and flattened bulges of arbitrary surface density.
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">jupyter</div>
+                <div class="quarto-category">vcdisk</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Lorenzo Posti </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">December 8, 2022</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#what-is-vcdisk" id="toc-what-is-vcdisk" class="nav-link active" data-scroll-target="#what-is-vcdisk">What is <code>vcdisk</code>?</a>
+  <ul class="collapse">
+  <li><a href="#why-do-we-need-vcdisk" id="toc-why-do-we-need-vcdisk" class="nav-link" data-scroll-target="#why-do-we-need-vcdisk">Why do we need <code>vcdisk</code>?</a></li>
+  <li><a href="#example-1-analytic-surface-density" id="toc-example-1-analytic-surface-density" class="nav-link" data-scroll-target="#example-1-analytic-surface-density">Example 1: analytic surface density</a>
+  <ul class="collapse">
+  <li><a href="#import-vcdisk" id="toc-import-vcdisk" class="nav-link" data-scroll-target="#import-vcdisk">Import <code>vcdisk</code></a></li>
+  <li><a href="#exponential-thick-disk" id="toc-exponential-thick-disk" class="nav-link" data-scroll-target="#exponential-thick-disk">Exponential thick disk</a></li>
+  <li><a href="#sersic-profile" id="toc-sersic-profile" class="nav-link" data-scroll-target="#sersic-profile">Sersic profile</a></li>
+  <li><a href="#sersic-bulges" id="toc-sersic-bulges" class="nav-link" data-scroll-target="#sersic-bulges">Sersic bulges</a></li>
+  <li><a href="#flattened-sersic-bulges" id="toc-flattened-sersic-bulges" class="nav-link" data-scroll-target="#flattened-sersic-bulges">Flattened Sersic bulges</a></li>
+  <li><a href="#user-defined-vertical-density-profile" id="toc-user-defined-vertical-density-profile" class="nav-link" data-scroll-target="#user-defined-vertical-density-profile">User-defined vertical density profile</a></li>
+  <li><a href="#flaring-disk" id="toc-flaring-disk" class="nav-link" data-scroll-target="#flaring-disk">Flaring disk</a></li>
+  </ul></li>
+  <li><a href="#example-2-observed-surface-brightness" id="toc-example-2-observed-surface-brightness" class="nav-link" data-scroll-target="#example-2-observed-surface-brightness">Example 2: observed surface brightness</a>
+  <ul class="collapse">
+  <li><a href="#ngc2403-a-late-sc-bulgeless-disk-galaxy" id="toc-ngc2403-a-late-sc-bulgeless-disk-galaxy" class="nav-link" data-scroll-target="#ngc2403-a-late-sc-bulgeless-disk-galaxy">NGC2403: a late (Sc) bulgeless disk galaxy</a></li>
+  <li><a href="#ugc-2953-an-early-sa-spiral-galaxy" id="toc-ugc-2953-an-early-sa-spiral-galaxy" class="nav-link" data-scroll-target="#ugc-2953-an-early-sa-spiral-galaxy">UGC 2953: an early (Sa) spiral galaxy</a></li>
+  </ul></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+<section id="what-is-vcdisk" class="level1">
+<h1>What is <code>vcdisk</code>?</h1>
+<p><code>vcdisk</code> is a handy toolbox which implements several essential routines for anyone working on galactic dynamics and, in particular, with galaxy rotation curves. <code>vcdisk</code> provides fast and efficient solutions of Poisson’s equation (using results from <a href="https://ui.adsabs.harvard.edu/abs/1983MNRAS.203..735C/">Casertano 1983</a>, <a href="https://ui.adsabs.harvard.edu/abs/1993MNRAS.262.1076C/">Cuddeford 1993</a>, <a href="https://ui.adsabs.harvard.edu/abs/2008MNRAS.385.1359N/">Noordermeer 2008</a> and <a href="https://ui.adsabs.harvard.edu/abs/2008gady.book.....B/">Binney &amp; Tremaine 2008</a>) in the context of thick galaxy disks and flattened oblate bulges of any observed surface density profile.</p>
+<p>It is a new minimial python package that I wrote and it can be found at <a href="https://github.com/lposti/vcdisk">https://github.com/lposti/vcdisk</a>. This notebook reproduces the introductory <em>“How to use <code>vcdisk</code>”</em> tutorial which can be found in the <a href="https://vcdisk.readthedocs.io/en/latest/"><strong>documentation</strong></a>.</p>
+<section id="why-do-we-need-vcdisk" class="level2">
+<h2 class="anchored" data-anchor-id="why-do-we-need-vcdisk">Why do we need <code>vcdisk</code>?</h2>
+<p>The most typical use case for <code>vcdisk</code> is in rotation curve modelling. Specifically, this module allows to compute <em>the contribution to the circular velocity of the observed baryonic components of a disk galaxy</em>, e.g.&nbsp;the stellar disk, the gas disk, the stellar bulge.</p>
+<p>If we have some kinematical observations that allowed us to measure the rotational velocities of some material in circular orbits in the disk of a spiral galaxy (e.g.&nbsp;cold gas), the observed rotation curve can be decomposed into several dynamically important components in the galaxy <img src="figures/vrot.png" class="img-fluid" alt="Rotation curve decomposition"> where <span class="math inline">\(V_{\rm DM}\)</span> is the contribution from dark matter, <span class="math inline">\(V_{\star,\rm disk}\)</span> from the stellar disk, <span class="math inline">\(V_{\rm gas, disk}\)</span> from the gas disk etc. While the left-hand side of this equation usually comes from observations, and the contribution of DM is the unknown that is often what we want to constrain, for all the other terms there is <code>vcdisk</code>!</p>
+<p><code>vcdisk</code> calculates the contribution to the gravitational field of an axisymmetric component whose radial surface density distribution is known. For instance, the surface density profiles of stellar (<span class="math inline">\(\Sigma_{\star, \rm disk}\)</span>) and gaseous disks (<span class="math inline">\(\Sigma_{\star, \rm disk}\)</span>) can be directly obtained from galaxy images in appropriate wavebands and these can then be used as input for <code>vcdisk.vcdisk</code> to calculate <span class="math inline">\(V_{\rm disk}(R, \Sigma_{\rm disk}(R))\)</span>.</p>
+<p>The <code>vcdisk</code> module provides appropriate calculations for both disky (<code>vcdisk.vcdisk</code>) and spheroidal (<code>vcdisk.vcbulge</code>) galaxy components.</p>
+</section>
+<section id="example-1-analytic-surface-density" class="level2">
+<h2 class="anchored" data-anchor-id="example-1-analytic-surface-density">Example 1: analytic surface density</h2>
+<section id="import-vcdisk" class="level3">
+<h3 class="anchored" data-anchor-id="import-vcdisk">Import <code>vcdisk</code></h3>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> vcdisk</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pylab <span class="im">as</span> plt</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># suppressing warnings in the scipy.integrate.quad calls in vcbulge</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> warnings</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.integrate <span class="im">import</span> IntegrationWarning</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>warnings.filterwarnings(<span class="st">"ignore"</span>, category<span class="op">=</span>IntegrationWarning)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="exponential-thick-disk" class="level3">
+<h3 class="anchored" data-anchor-id="exponential-thick-disk">Exponential thick disk</h3>
+<p>Let’s start with the case of a thick disk with a classical exponential surface density.</p>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>md, rd <span class="op">=</span> <span class="fl">1e10</span>, <span class="fl">2.0</span>                        <span class="co"># mass, scalelength of the disk</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>r <span class="op">=</span> np.linspace(<span class="fl">0.1</span>, <span class="fl">30.0</span>, <span class="dv">100</span>)           <span class="co"># radii samples</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> expdisk_sb(r, md, rd):</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># exponential disk surface density</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> md <span class="op">/</span> (<span class="dv">2</span><span class="op">*</span>np.pi<span class="op">*</span>rd<span class="op">**</span><span class="dv">2</span>) <span class="op">*</span> np.exp(<span class="op">-</span>r<span class="op">/</span>rd)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>sb_exp <span class="op">=</span> expdisk_sb(r, md, rd)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co"># run vcdisk</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>vdisk <span class="op">=</span> vcdisk.vcdisk(r, sb_exp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_sb_vdisk(ax, r, sb, vdisk, label<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    ax[<span class="dv">0</span>].plot(r, np.log10(sb), lw<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    ax[<span class="dv">0</span>].set_xlabel(<span class="st">"radius / kpc"</span>)<span class="op">;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    ax[<span class="dv">0</span>].set_ylabel(<span class="st">"log surface density / M_sun kpc"</span><span class="op">+</span><span class="st">"$^</span><span class="sc">{2}</span><span class="st">$"</span>)<span class="op">;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    ax[<span class="dv">1</span>].plot(r, vdisk, lw<span class="op">=</span><span class="dv">2</span>,  label<span class="op">=</span>label)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    ax[<span class="dv">1</span>].set_xlabel(<span class="st">"radius / kpc"</span>)<span class="op">;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    ax[<span class="dv">1</span>].set_ylabel(<span class="st">"velocity / km s"</span><span class="op">+</span><span class="st">"$^{-1}$"</span>)<span class="op">;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> label <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>: ax[<span class="dv">1</span>].legend()</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">4</span>), ncols<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, r, sb_exp, vdisk)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-12-08-vcdisk_files/figure-html/cell-4-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>We can explore how does <span class="math inline">\(V_{\rm disk}\)</span> change when changing the scaleheight of the disk <span class="math inline">\(z_0\)</span> for instance:</p>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">4</span>), ncols<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, r, sb_exp, vdisk, label<span class="op">=</span><span class="st">'z0=0.3 kpc'</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, r, sb_exp, vcdisk.vcdisk(r, sb_exp, z0<span class="op">=</span><span class="fl">0.1</span>), label<span class="op">=</span><span class="st">'z0=0.1 kpc'</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, r, sb_exp, vcdisk.vcdisk(r, sb_exp, z0<span class="op">=</span><span class="fl">0.8</span>), label<span class="op">=</span><span class="st">'z0=0.8 kpc'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-12-08-vcdisk_files/figure-html/cell-5-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+<section id="sersic-profile" class="level3">
+<h3 class="anchored" data-anchor-id="sersic-profile">Sersic profile</h3>
+<p>Let’s compare to other popular analytic surface density profiles. Probably the most used in Astronomy is the <a href="https://ui.adsabs.harvard.edu/abs/1968adga.book.....S">Sersic (1968)</a> profile, which is often used to describe all sorts of stellar components, including disks and bulges. We can use the class <code>sersic</code> in the <code>vcdisk</code> package to get Sersic profiles</p>
+<div class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>sers_n1  <span class="op">=</span> vcdisk.sersic(md, <span class="fl">1.678</span><span class="op">*</span>rd, <span class="fl">1.0</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>sers_n2  <span class="op">=</span> vcdisk.sersic(md, <span class="fl">1.678</span><span class="op">*</span>rd, <span class="fl">2.0</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>sers_n05 <span class="op">=</span> vcdisk.sersic(md, <span class="fl">1.678</span><span class="op">*</span>rd, <span class="fl">0.5</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>sers_n4  <span class="op">=</span> vcdisk.sersic(md, <span class="fl">1.678</span><span class="op">*</span>rd, <span class="fl">4.0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Here, we have taken the reference model <code>sers_n1</code> which is equivalent to the exponential disk above, since <span class="math inline">\(R_e\simeq 1.678 R_{\rm d}\)</span> for <span class="math inline">\(n=1\)</span> exponential profiles. Let’s now compare the circular velocities of disks with Sersic surface brightnesses with different index <span class="math inline">\(n\)</span>, while keeping the total luminosity fixed.</p>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">4</span>), ncols<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, r, sers_n1(r),  vcdisk.vcdisk(r, sers_n1(r)), label<span class="op">=</span><span class="st">'Sersic: n=1'</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, r, sers_n05(r), vcdisk.vcdisk(r, sers_n05(r)), label<span class="op">=</span><span class="st">'Sersic: n=0.5'</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, r, sers_n2(r),  vcdisk.vcdisk(r, sers_n2(r)), label<span class="op">=</span><span class="st">'Sersic: n=2'</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, r, sers_n4(r),  vcdisk.vcdisk(r, sers_n4(r)), label<span class="op">=</span><span class="st">'Sersic: n=4'</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].set_ylim(<span class="dv">2</span>,<span class="dv">10</span>)<span class="op">;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].set_ylim(<span class="op">-</span><span class="dv">1</span>, <span class="dv">105</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-12-08-vcdisk_files/figure-html/cell-7-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+<section id="sersic-bulges" class="level3">
+<h3 class="anchored" data-anchor-id="sersic-bulges">Sersic bulges</h3>
+<p>We have just computed the circular velocities of thick galaxy disks whose surface brightness profile is of the Sersic form with different <span class="math inline">\(n\)</span>. However, we may also be interested in the circular velocity of a <strong>spheroidal component</strong>, <em>like a stellar bulge</em>, whose observed surface brightness is well approximated by a Sersic law.</p>
+<section id="if-for-disky-components-we-use-vcdisk-for-spheroidal-components-we-use-vcbulge" class="level4">
+<h4 class="anchored" data-anchor-id="if-for-disky-components-we-use-vcdisk-for-spheroidal-components-we-use-vcbulge">If for disky components we use <code>vcdisk</code>, for spheroidal components we use <code>vcbulge</code>!</h4>
+<p>Let’s now compute the circular velocity on the mid-plane of a nearly spherical Sersic bulges with different <span class="math inline">\(n\)</span>.</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">4</span>), ncols<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, r, sers_n1(r),  vcdisk.vcbulge_sersic(r, md, <span class="fl">1.678</span><span class="op">*</span>rd, <span class="fl">1.0</span>), label<span class="op">=</span><span class="st">'Sersic: n=1'</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, r, sers_n05(r), vcdisk.vcbulge_sersic(r, md, <span class="fl">1.678</span><span class="op">*</span>rd, <span class="fl">0.5</span>), label<span class="op">=</span><span class="st">'Sersic: n=0.5'</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, r, sers_n2(r),  vcdisk.vcbulge_sersic(r, md, <span class="fl">1.678</span><span class="op">*</span>rd, <span class="fl">2.0</span>), label<span class="op">=</span><span class="st">'Sersic: n=2'</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, r, sers_n4(r),  vcdisk.vcbulge_sersic(r, md, <span class="fl">1.678</span><span class="op">*</span>rd, <span class="fl">4.0</span>), label<span class="op">=</span><span class="st">'Sersic: n=4'</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].set_ylim(<span class="dv">2</span>,<span class="dv">10</span>)<span class="op">;</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].set_ylim(<span class="op">-</span><span class="dv">1</span>, <span class="dv">105</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/Users/lposti/anaconda/envs/py37/lib/python3.7/site-packages/vcdisk.py:925: RuntimeWarning: invalid value encountered in double_scalars
+  return -self.Ie*self.bn/(self.n*self.re) * np.exp(-self.bn*((R/self.re)**(1/self.n)-1)) * (R/self.re)**(1/self.n-1.0)</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-12-08-vcdisk_files/figure-html/cell-8-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+</section>
+<section id="flattened-sersic-bulges" class="level3">
+<h3 class="anchored" data-anchor-id="flattened-sersic-bulges">Flattened Sersic bulges</h3>
+<p>We can compute the circular velocity also for flattened oblate bulges, thus for components whose 3D density is stratified as <span class="math inline">\(\rho=\rho(m)\)</span> where <span class="math inline">\(m^2=R^2+z^2/q^2\)</span> with axis ratio <span class="math inline">\(0&lt;q\leq 1\)</span>.</p>
+<p>Let’s take the same baseline model as in Fig. 2 (top central panel) of <a href="https://ui.adsabs.harvard.edu/abs/2008MNRAS.385.1359N/">Noordermeer (2008)</a>:</p>
+<div class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>mb, re <span class="op">=</span> <span class="fl">5e9</span>, <span class="fl">1.0</span>                    <span class="co"># mass, effective radius of the bulge</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>rb <span class="op">=</span> np.logspace(<span class="op">-</span><span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">100</span>)          <span class="co"># radii samples</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>sers_bulge <span class="op">=</span> vcdisk.sersic(mb, re, <span class="fl">1.0</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>sb_sers_bulge <span class="op">=</span> sers_bulge(rb)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>and we can plot <span class="math inline">\(V_{\rm bulge}\)</span> for different axis ratios <span class="math inline">\(q\)</span> at a fixed mass, effective radius and Sersic index. For comparison, the black dotted line is for a point mass with the same mass as the bulge.</p>
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>plt.plot(rb, np.sqrt(<span class="fl">4.301e-6</span><span class="op">*</span><span class="fl">5e9</span><span class="op">/</span>rb),<span class="st">'k:'</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>plt.plot(rb, vcdisk.vcbulge(rb, sb_sers_bulge), c<span class="op">=</span><span class="st">'C0'</span>, label<span class="op">=</span><span class="st">'q=0.99'</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>plt.plot(rb, vcdisk.vcbulge(rb, sb_sers_bulge, q<span class="op">=</span><span class="fl">0.8</span>), c<span class="op">=</span><span class="st">'C1'</span>, label<span class="op">=</span><span class="st">'q=0.8'</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>plt.plot(rb, vcdisk.vcbulge(rb, sb_sers_bulge, q<span class="op">=</span><span class="fl">0.6</span>), c<span class="op">=</span><span class="st">'C2'</span>, label<span class="op">=</span><span class="st">'q=0.6'</span>)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>plt.plot(rb, vcdisk.vcbulge(rb, sb_sers_bulge, q<span class="op">=</span><span class="fl">0.4</span>), c<span class="op">=</span><span class="st">'C3'</span>, label<span class="op">=</span><span class="st">'q=0.4'</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>plt.plot(rb, vcdisk.vcbulge(rb, sb_sers_bulge, q<span class="op">=</span><span class="fl">0.2</span>), c<span class="op">=</span><span class="st">'C4'</span>, label<span class="op">=</span><span class="st">'q=0.2'</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>plt.ylim(<span class="dv">0</span>,<span class="dv">160</span>)<span class="op">;</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>plt.xlim(<span class="dv">0</span>,<span class="dv">10</span>)<span class="op">;</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"radius / kpc"</span>)<span class="op">;</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"velocity / km s"</span><span class="op">+</span><span class="st">"$^{-1}$"</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CPU times: user 52 s, sys: 541 ms, total: 52.5 s
+Wall time: 54.5 s</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<pre><code>Text(0, 0.5, 'velocity / km s$^{-1}$')</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-12-08-vcdisk_files/figure-html/cell-10-output-3.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+<section id="user-defined-vertical-density-profile" class="level3">
+<h3 class="anchored" data-anchor-id="user-defined-vertical-density-profile">User-defined vertical density profile</h3>
+<p><code>vcdisk</code> allows us to specify our own vertical density profile, if we so choose. This can be easily done through the <code>rhoz</code> argument.</p>
+<div class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rhoz_gauss(z, m, std): <span class="cf">return</span> np.exp(<span class="op">-</span><span class="fl">0.5</span><span class="op">*</span>(z<span class="op">-</span>m)<span class="op">**</span><span class="dv">2</span><span class="op">/</span>std<span class="op">**</span><span class="dv">2</span>) <span class="op">/</span> np.sqrt(<span class="dv">2</span><span class="op">*</span>np.pi<span class="op">*</span>std<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_rhoz(ax, z, rhoz, label<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    ax.plot(z, rhoz, lw<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span>label)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    ax.legend()</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="st">"radius / kpc"</span>)<span class="op">;</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    ax.set_ylabel(<span class="st">"vertical density / M_sun kpc"</span><span class="op">+</span><span class="st">"$^</span><span class="sc">{2}</span><span class="st">$"</span>)<span class="op">;</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">6</span>,<span class="dv">4</span>))</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>z <span class="op">=</span> np.linspace(<span class="dv">0</span>,<span class="dv">3</span>)</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>plot_rhoz(ax, z, np.exp(<span class="op">-</span>z<span class="op">/</span><span class="fl">0.3</span>) <span class="op">/</span> (<span class="dv">2</span><span class="op">*</span><span class="fl">0.3</span>), label<span class="op">=</span><span class="st">'exp'</span>)</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>plot_rhoz(ax, z, rhoz_gauss(z, <span class="fl">0.</span>, <span class="fl">0.8</span>), label<span class="op">=</span><span class="st">'gauss'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-12-08-vcdisk_files/figure-html/cell-11-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">4</span>), ncols<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, r, sb_exp, vdisk)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, r, sb_exp, vcdisk.vcdisk(r, sb_exp, rhoz<span class="op">=</span>rhoz_gauss, rhoz_args<span class="op">=</span>{<span class="st">'m'</span>:<span class="fl">0.0</span>, <span class="st">'std'</span>:<span class="fl">0.8</span>}))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-12-08-vcdisk_files/figure-html/cell-12-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+<section id="flaring-disk" class="level3">
+<h3 class="anchored" data-anchor-id="flaring-disk">Flaring disk</h3>
+<p>We can also have a flaring disk, i.e.&nbsp;one where the vertical density depends also on radius <span class="math inline">\(\rho_z=\rho_z(z,R)\)</span>. We can work out this case as well with <code>vcdisk</code> by specifying how <span class="math inline">\(\rho_z\)</span> depends on <span class="math inline">\(R\)</span>.</p>
+<div class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rhoz_exp_flaring(z, R, z00, Rs):</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    z0R <span class="op">=</span> z00<span class="op">+</span>np.arcsinh(R<span class="op">**</span><span class="dv">2</span><span class="op">/</span>Rs<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.exp(<span class="op">-</span>z<span class="op">/</span>z0R) <span class="op">/</span> (<span class="dv">2</span><span class="op">*</span>z0R)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">6</span>,<span class="dv">4</span>))</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>z <span class="op">=</span> np.linspace(<span class="dv">0</span>,<span class="dv">3</span>)</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>plot_rhoz(ax, z, rhoz_exp_flaring(z, <span class="fl">0.0</span>, <span class="fl">0.1</span>, <span class="fl">0.8</span>), label<span class="op">=</span><span class="st">'R=0'</span>)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>plot_rhoz(ax, z, rhoz_exp_flaring(z, <span class="fl">0.5</span>, <span class="fl">0.1</span>, <span class="fl">0.8</span>), label<span class="op">=</span><span class="st">'R=0.5'</span>)</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>plot_rhoz(ax, z, rhoz_exp_flaring(z, <span class="fl">1.0</span>, <span class="fl">0.1</span>, <span class="fl">0.8</span>), label<span class="op">=</span><span class="st">'R=1'</span>)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>plot_rhoz(ax, z, rhoz_exp_flaring(z, <span class="fl">1.5</span>, <span class="fl">0.1</span>, <span class="fl">0.8</span>), label<span class="op">=</span><span class="st">'R=1.5'</span>)</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>plt.ylim(<span class="va">None</span>,<span class="dv">2</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-12-08-vcdisk_files/figure-html/cell-13-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">4</span>), ncols<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, r, sb_exp, vdisk)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, r, sb_exp, vcdisk.vcdisk(r, sb_exp, rhoz<span class="op">=</span>rhoz_exp_flaring, rhoz_args<span class="op">=</span>{<span class="st">'z00'</span>:<span class="fl">0.1</span>, <span class="st">'Rs'</span>:<span class="fl">0.8</span>}, flaring<span class="op">=</span><span class="va">True</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-12-08-vcdisk_files/figure-html/cell-14-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+</section>
+<section id="example-2-observed-surface-brightness" class="level2">
+<h2 class="anchored" data-anchor-id="example-2-observed-surface-brightness">Example 2: observed surface brightness</h2>
+<section id="ngc2403-a-late-sc-bulgeless-disk-galaxy" class="level3">
+<h3 class="anchored" data-anchor-id="ngc2403-a-late-sc-bulgeless-disk-galaxy">NGC2403: a late (Sc) bulgeless disk galaxy</h3>
+<p>Let’s say that, instead of having just simple galaxy images from which we can derive an analytic approximation for the galaxy surface brightness, we have a detailed galaxy image from which we can measure the intensity in elliptical annuli. This is for instance the case of nearby galaxies such as <a href="http://cdsportal.u-strasbg.fr/?target=ngc2403">NGC 2403</a>, that I use here as an example.</p>
+<p>I use data taken from the <a href="http://astroweb.cwru.edu/SPARC/">SPARC</a> database for this galaxy, which I include in this package as the <code>NGC2403_rotmod.dat</code> file. Here are reported measurements of the intensity at 3.6<span class="math inline">\(\mu\)</span>m taken with the <em>SPITZER</em> space telescope in elliptical annuli for this target.</p>
+<div class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>rad, _, _, _, _, _, sb_n2403, _ <span class="op">=</span> np.genfromtxt(<span class="st">'NGC2403_rotmod.dat'</span>, unpack<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co"># convert SB to Msun / kpc^2</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>sb_n2403 <span class="op">*=</span> <span class="fl">1e6</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now we can very easily use <code>vcdisk</code> to calculate <span class="math inline">\(V_{\star, \rm disk}\)</span> for this galaxy, and we can evena compare it to some analytic profiles.</p>
+<div class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>vd_n2403 <span class="op">=</span> vcdisk.vcdisk(rad, sb_n2403, z0<span class="op">=</span><span class="fl">0.4</span>)<span class="co"># z0=0.4 kpc from Fraternali et al. (2002): https://ui.adsabs.harvard.edu/abs/2002AJ....123.3124F</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>sb_exp_n2403 <span class="op">=</span> expdisk_sb(rad, <span class="fl">1.004e10</span>, <span class="fl">1.39</span>) <span class="co"># numbers taken from http://astroweb.cwru.edu/SPARC/</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">4</span>), ncols<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, rad, sb_exp_n2403, vcdisk.vcdisk(rad, sb_exp_n2403), label<span class="op">=</span><span class="st">'exp-disk'</span>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, rad, sb_n2403, vd_n2403, label<span class="op">=</span><span class="st">'observed'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/Users/lposti/anaconda/envs/py37/lib/python3.7/site-packages/ipykernel_launcher.py:2: RuntimeWarning: divide by zero encountered in log10
+  </code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-12-08-vcdisk_files/figure-html/cell-16-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<p>The <span class="math inline">\(V_{\star, \rm disk}\)</span> curve obtained with <code>vcdisk</code> directly from the ellipse photometry of NGC 2403 is much more structured between <span class="math inline">\(1-5\rm \,kpc\)</span>, which is where the surface brightness has dips and peaks. <em>Capturing this rich structure is</em> <strong>essential</strong> <em>to rotation curve modelling</em>.</p>
+</section>
+<section id="ugc-2953-an-early-sa-spiral-galaxy" class="level3">
+<h3 class="anchored" data-anchor-id="ugc-2953-an-early-sa-spiral-galaxy">UGC 2953: an early (Sa) spiral galaxy</h3>
+<p>Let’s take a different case now of an early spiral galaxy, i.e.&nbsp;a disk galaxy with redder colors and a prominent central bulge: UGC 2953.</p>
+<p>I use again the data taken from the <a href="http://astroweb.cwru.edu/SPARC/">SPARC</a> database and I include them here as the <code>UGC02953_rotmod.dat</code> file. There are measurements of the near-infrared intensities of both the disk and bulge components separated.</p>
+<div class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>rad, _, _, _, _, _, sbd_u2953, sbb_u2953 <span class="op">=</span> np.genfromtxt(<span class="st">'UGC02953_rotmod.dat'</span>, unpack<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co"># convert SB to Msun / kpc^2</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>sbd_u2953 <span class="op">*=</span> <span class="fl">1e6</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>sbb_u2953 <span class="op">*=</span> <span class="fl">1e6</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>With the two different surface brightness arrays, we can use <code>vcdisk</code> and <code>vcbulge</code> to get the corresponding circular velocities.</p>
+<div class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>vd_u2953 <span class="op">=</span> vcdisk.vcdisk(rad, sbd_u2953, z0<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>vb_u2953 <span class="op">=</span> vcdisk.vcbulge(rad, sbb_u2953)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>And we can finally plot them together.</p>
+<div class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">4</span>), ncols<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, rad, sbd_u2953, vd_u2953, label<span class="op">=</span><span class="st">'disk'</span>)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, rad, sbb_u2953, vb_u2953, label<span class="op">=</span><span class="st">'bulge'</span>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>plot_sb_vdisk(ax, rad, sbd_u2953<span class="op">+</span>sbb_u2953, np.sqrt(vd_u2953<span class="op">**</span><span class="dv">2</span><span class="op">+</span>vb_u2953<span class="op">**</span><span class="dv">2</span>), label<span class="op">=</span><span class="st">'total'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/Users/lposti/anaconda/envs/py37/lib/python3.7/site-packages/ipykernel_launcher.py:2: RuntimeWarning: divide by zero encountered in log10
+  
+/Users/lposti/anaconda/envs/py37/lib/python3.7/site-packages/ipykernel_launcher.py:2: RuntimeWarning: divide by zero encountered in log10
+  
+/Users/lposti/anaconda/envs/py37/lib/python3.7/site-packages/ipykernel_launcher.py:2: RuntimeWarning: divide by zero encountered in log10
+  </code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-12-08-vcdisk_files/figure-html/cell-19-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+
+
+</section>
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

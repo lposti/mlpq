@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.280">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Lorenzo Posti">
+<meta name="dcterms.date" content="2022-11-16">
+<meta name="description" content="Designing a simple feedforward neural network, made with just linear layers, activations, and batch normalization, to predict rotation curves from galaxy surface brightness profiles. Comparison to the MOND empirical law.">
+
+<title>Lorenzo Posti’s Machine Learning Quarto blog - A simple neural network to predict galaxy rotation curves from photometry</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">Lorenzo Posti’s Machine Learning Quarto blog</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html">
+ <span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/lposti/"><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://scholar.google.com/citations?user=fDDcGdwAAAAJ&amp;hl=en"><i class="bi bi-mortarboard-fill" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://ui.adsabs.harvard.edu/search/q=docs(library%2FfCiUp3W_T7qXYNboezCKAg)&amp;sort=date%20desc%2C%20bibcode%20desc&amp;p_=0"><i class="bi bi-book-half" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">A simple neural network to predict galaxy rotation curves from photometry</h1>
+                  <div>
+        <div class="description">
+          Designing a simple feedforward neural network, made with just linear layers, activations, and batch normalization, to predict rotation curves from galaxy surface brightness profiles. Comparison to the MOND empirical law.
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">neural_network</div>
+                <div class="quarto-category">jupyter</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Lorenzo Posti </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">November 16, 2022</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#predicting-rotation-curves-just-from-photometric-observations" id="toc-predicting-rotation-curves-just-from-photometric-observations" class="nav-link active" data-scroll-target="#predicting-rotation-curves-just-from-photometric-observations">Predicting rotation curves just from photometric observations</a>
+  <ul class="collapse">
+  <li><a href="#the-sparc-dataset" id="toc-the-sparc-dataset" class="nav-link" data-scroll-target="#the-sparc-dataset">The SPARC dataset</a></li>
+  <li><a href="#an-appropriate-baseline-model-mond" id="toc-an-appropriate-baseline-model-mond" class="nav-link" data-scroll-target="#an-appropriate-baseline-model-mond">An appropriate baseline model: MOND</a></li>
+  </ul></li>
+  <li><a href="#a-neural-network-model" id="toc-a-neural-network-model" class="nav-link" data-scroll-target="#a-neural-network-model">A neural network model</a>
+  <ul class="collapse">
+  <li><a href="#data-manipulation" id="toc-data-manipulation" class="nav-link" data-scroll-target="#data-manipulation">Data manipulation</a></li>
+  <li><a href="#the-torch.nn-model" id="toc-the-torch.nn-model" class="nav-link" data-scroll-target="#the-torch.nn-model">The <code>torch.nn</code> model</a></li>
+  <li><a href="#training-loop" id="toc-training-loop" class="nav-link" data-scroll-target="#training-loop">Training loop</a></li>
+  <li><a href="#comparing-rotation-curve-predictions" id="toc-comparing-rotation-curve-predictions" class="nav-link" data-scroll-target="#comparing-rotation-curve-predictions">Comparing rotation curve predictions</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+<section id="predicting-rotation-curves-just-from-photometric-observations" class="level2">
+<h2 class="anchored" data-anchor-id="predicting-rotation-curves-just-from-photometric-observations">Predicting rotation curves just from photometric observations</h2>
+<p>An interesting, and still open, question in modern Astronomy is how the properties of a galaxy, such as its luminosity, size, and stellar/gas content, shape the gravitational field in which the galaxy is immersed. In the case of disk galaxies, orbits are close to circular, thus measuring the rotational velocity of stars or gas in the disk gives a direct probe of the total gravitational potential. For the galaxies for which we are able to obtain such rotation curves with optical or radio telescopes, we can try to establish a link between the shape of the circular velocity curve, i.e.&nbsp;of the total gravitational potential, and with the distribution of luminous baryons, stars and gas.</p>
+<p>It is very well-known that the gravitational field generated by the luminous baryons is not enough to account for the observed rotation curves – the so-called <em>missing mass problem</em>. This could be either because there is an additional invisible matter component to be considered in the potential budget (<em>dark matter</em>) or because the laws of gravity as we know them need revision in the context of disk galaxies. Whathever the reason, the missing mass problem implies that by simply measuring the surface brightness profile of a disk galaxy there is no simple, direct way to transform this into a circular velocity profile.</p>
+<p>In this post I will try to establish a connection between the distribution of luminous mass of disk galaxies, that can be derived with cheap photometric observations, and the shape of the rotation curve, which traces the gravitational potential. This could be useful in order to predict the shape of the gravitational field with just images of the galaxy.</p>
+<p>To do this I will train a very simple feedforward neural network (NN) made with just one hidden linear layer, activations, and batch normalization. This will be trained with a sample of 145 galaxies with measured rotation curves in the <a href="http://astroweb.cwru.edu/SPARC/">SPARC database</a>.</p>
+<p>The baseline model to which I will compare the performance of the NN is the framework of Modified Newtonian Dynamics (MOND), since its empirical law that relates the baryonic acceleration to the total gravitational acceleration is observed to provide excellent approximations of the observed rotation curves (e.g.&nbsp;<a href="https://ui.adsabs.harvard.edu/abs/1991MNRAS.249..523B">Begeman et al.&nbsp;1991</a>).</p>
+<section id="the-sparc-dataset" class="level3">
+<h3 class="anchored" data-anchor-id="the-sparc-dataset">The SPARC dataset</h3>
+<p>I use the rich rotation curve catalog called <a href="http://astroweb.cwru.edu/SPARC/">SPARC</a>, which was originally compiled by <a href="https://ui.adsabs.harvard.edu/abs/2016AJ....152..157L">Lelli et al.&nbsp;(2016)</a> and it is perfectly suited for this kind of study.</p>
+<div class="cell" data-execution_count="1">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pylab <span class="im">as</span> plt</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch, math</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.nn <span class="im">as</span> nn</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> tensor</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>matplotlib inline</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config Completer.use_jedi <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Here I copied the table describing the sample and the table with all the velocity profiles and surface brightnesses.</p>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># mastertable</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>df_sp_master <span class="op">=</span> pd.read_csv(<span class="st">'sparc_mastertable.txt'</span>, delim_whitespace<span class="op">=</span><span class="va">True</span>, header<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>                           names<span class="op">=</span>[<span class="st">'Galaxy'</span>,<span class="st">'T'</span>,<span class="st">'D'</span>,<span class="st">'e_D'</span>,<span class="st">'f_D'</span>,<span class="st">'Inc'</span>,<span class="st">'e_Inc'</span>,<span class="st">'L[3.6]'</span>,<span class="st">'e_L[3.6]'</span>,<span class="st">'Reff'</span>,<span class="st">'SBeff'</span>,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>                                  <span class="st">'Rdisk'</span>,<span class="st">'SBdisk0'</span>,<span class="st">'MHI'</span>,<span class="st">'RHI'</span>,<span class="st">'Vflat'</span>,<span class="st">'e_Vflat'</span>,<span class="st">'Q'</span>,<span class="st">'Ref.'</span>])</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co"># profiles table</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>df_sp_mm <span class="op">=</span> pd.read_csv(<span class="st">'sparc_mmtab.txt'</span>, delim_whitespace<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The SPARC database provides <code>Vgas</code>, <code>Vdisk</code>, and <code>Vbul</code> for each radius <code>R</code>, which are the contribution of respectively the gas, disk stellar component, and bulge stellar component to the total circular velocity curve of the galaxy. This are obtained directly from observations of the gas/disk/bulge surface density profiles through Poisson’s equation (see <a href="https://ui.adsabs.harvard.edu/abs/1983MNRAS.203..735C">Casertano 1983</a>).</p>
+<p>From the contributions to the circular velocities of the various components, we can obtain the <em>total baryonic circular velocity</em> which is</p>
+<p><span class="math display">\[
+V_{\rm bar}^2 = V_{\rm gas}^2 + (M/L)_{\rm disk}V_{\rm disk}^2 + (M/L)_{\rm bul}V_{\rm bul}^2,
+\]</span></p>
+<p>where we set <span class="math inline">\((M/L)_{\rm disk}=0.5\)</span> and <span class="math inline">\((M/L)_{\rm bul}=0.7\)</span> (at 3.6<span class="math inline">\(\mu\)</span>m) as suggested by <a href="https://ui.adsabs.harvard.edu/abs/2016ApJ...816L..14L">Lelli et al.&nbsp;(2016)</a>.</p>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>df_sp_mm[<span class="st">'Vbar'</span>] <span class="op">=</span> np.sqrt(df_sp_mm[<span class="st">'Vgas'</span>]<span class="op">**</span><span class="dv">2</span><span class="op">+</span><span class="fl">0.5</span><span class="op">*</span>df_sp_mm[<span class="st">'Vdisk'</span>]<span class="op">**</span><span class="dv">2</span><span class="op">+</span><span class="fl">0.7</span><span class="op">*</span>df_sp_mm[<span class="st">'Vbul'</span>]<span class="op">**</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="an-appropriate-baseline-model-mond" class="level3">
+<h3 class="anchored" data-anchor-id="an-appropriate-baseline-model-mond">An appropriate baseline model: MOND</h3>
+<p>The best way that we have to predict rotation curves from surface density profiles is by using the empirical MOND law. Modified Newtonian Dynamics (MOND) was introduced by <a href="https://ui.adsabs.harvard.edu/abs/1983ApJ...270..365M/">Milgrom (1983)</a> and it consists of a modification of Newtonian gravity which is empirically observed to fit galaxy rotation curves without the need for dark matter.</p>
+<p>While MOND has been developed to be a full gravitational theory, here I am going to use the phenomenological law of gravity relevant for galaxy disks (see e.g.&nbsp;Eq. 3 <a href="http://www.scholarpedia.org/article/The_MOND_paradigm_of_modified_dynamics">here</a>). The acceleration in MOND is related to the Newtonian acceleration as: <span class="math display">\[
+g_{\rm MOND} = g_{\rm N}\nu(g_{\rm N}/a_0), \qquad {\rm or} \qquad g_{\rm N} = g_{\rm MOND}\mu(g_{\rm MOND}/a_0),
+\]</span> where <span class="math inline">\(g_{\rm N}\)</span> is the Newtonian acceleration, <span class="math inline">\(a_0\)</span> is a constant acceleration and <span class="math inline">\(\nu\)</span> is the so-called <em>interpolating function</em> that specifies the MOND theory. Here I am using <span class="math display">\[
+\nu(y) = \frac{1+(1+4y^{-1})^{1/2}}{2},
+\]</span> whose inverse is <span class="math inline">\(\mu(x)=x/(1+x)\)</span>, i.e.&nbsp;the so-called <em>simple interpolating function</em> in MOND jargon (<a href="https://ui.adsabs.harvard.edu/abs/2005MNRAS.363..603F">Famaey &amp; Binney 2005</a>, <a href="https://ui.adsabs.harvard.edu/abs/2012LRR....15...10F">Famaey &amp; McGaugh 2012</a>), and a constant acceleration scale <span class="math inline">\(a_0 = 1.2\times 10^{-10} \rm m\,s^{-2}\)</span> (see e.g.&nbsp;<a href="https://ui.adsabs.harvard.edu/abs/2016PhRvL.117t1101M">McGaugh et al.&nbsp;2016</a>).</p>
+<p>The acceleration due to baryons alone is just <span class="math inline">\(g_{\rm bar} = V_{\rm bar}^2/R\)</span>. Then, since <span class="math inline">\(V_{\rm MOND} = \sqrt{g_{\rm MOND}R}\)</span> and <span class="math inline">\(g_{\rm MOND} = g_{\rm bar}\nu(g_{\rm bar}/a_0)\)</span>, I finally get that <span class="math display">\[
+V_{\rm MOND} = \sqrt{R\,g_{\rm bar}\nu(g_{\rm bar}/a_0)}=V_{\rm bar}\sqrt{\nu(g_{\rm bar}/a_0)}
+\]</span></p>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>df_sp_mm[<span class="st">'Gbar'</span>] <span class="op">=</span> df_sp_mm[<span class="st">'Vbar'</span>]<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> (df_sp_mm[<span class="st">'R'</span>]<span class="op">*</span><span class="fl">3.086e16</span>) <span class="op">*</span> <span class="fl">1e3</span> <span class="co"># m s^-2</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># interpolating nu-function (Eq. 3, http://www.scholarpedia.org/article/The_MOND_paradigm_of_modified_dynamics)</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># corresponding to the "simple" mu-function of Famaey &amp; Binney</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>nu_mond <span class="op">=</span> <span class="kw">lambda</span> y: <span class="fl">0.5</span><span class="op">+</span><span class="fl">0.5</span><span class="op">*</span>np.sqrt(<span class="dv">1</span><span class="op">+</span><span class="dv">4</span><span class="op">/</span>y)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>df_sp_mm[<span class="st">'Vmond'</span>] <span class="op">=</span> df_sp_mm[<span class="st">'Vbar'</span>] <span class="op">*</span> np.sqrt(nu_mond(df_sp_mm[<span class="st">'Gbar'</span>]<span class="op">/</span><span class="fl">1.2e-10</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now we have a baseline model that we can use as an expectation on the rotation curve of a disk galaxy from its surface brightness</p>
+</section>
+</section>
+<section id="a-neural-network-model" class="level2">
+<h2 class="anchored" data-anchor-id="a-neural-network-model">A neural network model</h2>
+<p>We now want to set up a deep neural network (NN) architecture that gets as an input arrays of <span class="math inline">\(R\)</span> and <span class="math inline">\(V_{\rm bar}(R)\)</span> and outputs arrays of the total circular velocity of a disk galaxy, <span class="math inline">\(V_{\rm obs}(R)\)</span>.</p>
+<section id="data-manipulation" class="level3">
+<h3 class="anchored" data-anchor-id="data-manipulation">Data manipulation</h3>
+<p>Let’s start by splitting the sample into training and validation sets. There are 175 galaxies in SPARC, each with a rotation curve array with variable size. Let’s split the catalog in 145 random galaxies for training and 30 random galaxis for validation, even though they will have very different numbers of curve datapoints.</p>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># using rng.choice to generate random integers without repetitions</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>valid_gals <span class="op">=</span> rng.choice(<span class="dv">174</span>, size<span class="op">=</span><span class="dv">30</span>, replace<span class="op">=</span><span class="va">False</span>) <span class="co"># 30/175 = 17% of galaxies in validation set</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>train_idx <span class="op">=</span> np.where(<span class="op">~</span>np.isin(df_sp_mm.Galaxy, df_sp_master[<span class="st">'Galaxy'</span>][valid_gals]))[<span class="dv">0</span>]</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>valid_idx <span class="op">=</span> np.where(np.isin(df_sp_mm.Galaxy, df_sp_master[<span class="st">'Galaxy'</span>][valid_gals]))[<span class="dv">0</span>]</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"># shuffle training dataset</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>rng.shuffle(train_idx)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>splits <span class="op">=</span> (<span class="bu">list</span>(train_idx), <span class="bu">list</span>(valid_idx))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Then I normalize the <span class="math inline">\(X=[R, V_{\rm bar}]\)</span> and <span class="math inline">\(Y=[V_{\rm obs}]\)</span> arrays, i.e.&nbsp;the input and output of the NN, and I convert them to tensors.</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>df_nn <span class="op">=</span> df_sp_mm[[<span class="st">'R'</span>, <span class="st">'Vbar'</span>]] <span class="co"># columns used in the NN</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>df_nn_train, df_nn_valid <span class="op">=</span> df_nn.iloc[train_idx], df_nn.iloc[valid_idx]</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>y_nn_train, y_nn_valid <span class="op">=</span> df_sp_mm[<span class="st">'Vobs'</span>].iloc[train_idx], df_sp_mm[<span class="st">'Vobs'</span>].iloc[valid_idx]</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co"># normalize X</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>mean_df_nn, std_df_nn <span class="op">=</span> df_nn_train.mean(), df_nn_train.std()</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>df_nn_train_norm <span class="op">=</span> (df_nn_train<span class="op">-</span>mean_df_nn)<span class="op">/</span>std_df_nn</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>df_nn_valid_norm <span class="op">=</span> (df_nn_valid<span class="op">-</span>mean_df_nn)<span class="op">/</span>std_df_nn</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co"># normalize y</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>mean_y_nn, std_y_nn <span class="op">=</span> y_nn_train.mean(), y_nn_train.std()</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>y_nn_train_norm <span class="op">=</span> (y_nn_train<span class="op">-</span>mean_y_nn)<span class="op">/</span>std_y_nn</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>y_nn_valid_norm <span class="op">=</span> (y_nn_valid<span class="op">-</span>mean_y_nn)<span class="op">/</span>std_y_nn</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="co"># convert to tensors</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>x_train <span class="op">=</span> tensor(df_nn_train_norm.values).<span class="bu">float</span>()</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>y_train <span class="op">=</span> tensor(y_nn_train_norm.values).<span class="bu">float</span>()</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>x_valid <span class="op">=</span> tensor(df_nn_valid_norm.values).<span class="bu">float</span>()</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>y_valid <span class="op">=</span> tensor(y_nn_valid_norm.values).<span class="bu">float</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Normalize and tensorize also the MOND predictions, so that we will be able to compare the losses with the NN model.</p>
+<div class="cell" data-execution_count="86">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>ymond_train <span class="op">=</span> tensor(((df_sp_mm[<span class="st">'Vmond'</span>].iloc[train_idx]<span class="op">-</span>mean_y_nn)<span class="op">/</span>std_y_nn).values).<span class="bu">float</span>()</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>ymond_valid <span class="op">=</span> tensor(((df_sp_mm[<span class="st">'Vmond'</span>].iloc[valid_idx]<span class="op">-</span>mean_y_nn)<span class="op">/</span>std_y_nn).values).<span class="bu">float</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="minimal-dataset-and-dataloader" class="level4">
+<h4 class="anchored" data-anchor-id="minimal-dataset-and-dataloader">Minimal <code>Dataset</code> and <code>Dataloader</code></h4>
+<p>I bundle the training and validation sets into a simple dataset class derived from <code>torch.utils.data.Dataset</code>. This is meant to be used with <code>torch.utils.data.DataLoader</code> for batch training.</p>
+<p>Defining the datasets</p>
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> RotCurveDset(torch.utils.data.Dataset):</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, x, y):</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.x <span class="op">=</span> x</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.y <span class="op">=</span> y</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__len__</span>(<span class="va">self</span>): <span class="cf">return</span> <span class="bu">len</span>(<span class="va">self</span>.x)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__getitem__</span>(<span class="va">self</span>, idx): <span class="cf">return</span> <span class="va">self</span>.x[idx], <span class="va">self</span>.y[idx]</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>dset_train <span class="op">=</span> RotCurveDset(x_train, y_train)</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>dset_valid <span class="op">=</span> RotCurveDset(x_valid, y_valid)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>and defining the dataloaders, with a rather large batch size (640) compared to the total number of the training datapoints (~2700)</p>
+<div class="cell" data-execution_count="79">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>bs <span class="op">=</span> <span class="dv">64</span><span class="op">*</span><span class="dv">10</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>dload_train <span class="op">=</span> torch.utils.data.DataLoader(dset_train, batch_size<span class="op">=</span>bs)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>dload_valid <span class="op">=</span> torch.utils.data.DataLoader(dset_valid, batch_size<span class="op">=</span>bs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="the-torch.nn-model" class="level3">
+<h3 class="anchored" data-anchor-id="the-torch.nn-model">The <code>torch.nn</code> model</h3>
+<p>I set up an extremely simple architecture with just one hidden layer, with 64 units, a leaky ReLU activation, and a BatchNorm layer.</p>
+<div class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>nl1 <span class="op">=</span> <span class="dv">64</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> nn.Sequential(nn.Linear(<span class="dv">2</span>, nl1), nn.LeakyReLU(), nn.BatchNorm1d(nl1),</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">#                       nn.Linear(nl1, nl1), nn.LeakyReLU(), #nn.Dropout1d(p=0.6),</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>                      nn.Linear(nl1, <span class="dv">1</span>))</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>model</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>I use a standard mean squared error loss function and the Adam optimizer algorithm, with a moderate weight decay to prevent overfitting.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>loss_fn <span class="op">=</span> nn.MSELoss(reduction<span class="op">=</span><span class="st">'mean'</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>optim   <span class="op">=</span> torch.optim.Adam(model.parameters(), lr<span class="op">=</span><span class="fl">0.0001</span>, weight_decay<span class="op">=</span><span class="fl">1e-4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="training-loop" class="level3">
+<h3 class="anchored" data-anchor-id="training-loop">Training loop</h3>
+<p>We now train the model. At each epoch we store the training loss and validation loss and after 1000 epochs we compare the training losses and validation losses to the MOND case.</p>
+<div class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>epochs <span class="op">=</span> <span class="dv">1000</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>train_losses, valid_losses <span class="op">=</span> [], []</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(epochs):</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">#</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># train phase</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">#</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    model.train()</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> batch, (x,y) <span class="kw">in</span> <span class="bu">enumerate</span>(dload_train):</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        <span class="co"># model and loss</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>        y_pred <span class="op">=</span> model(x)</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        loss <span class="op">=</span> loss_fn(y_pred.squeeze(), y)</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>        <span class="co"># backprop</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        optim.zero_grad()</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>        loss.backward()</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>        optim.step()</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">#</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># test phase</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    <span class="co">#</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    model.<span class="bu">eval</span>()</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> torch.no_grad():</span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>        loss <span class="op">=</span> loss_fn(model(x_train).squeeze(), y_train)</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>        val_loss <span class="op">=</span> loss_fn(model(x_valid).squeeze(), y_valid)</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>        train_losses.append(loss)</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>        valid_losses.append(val_loss)</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> i <span class="op">%</span> <span class="dv">100</span> <span class="op">==</span> <span class="dv">0</span>: <span class="bu">print</span> (<span class="st">"Epoch: </span><span class="sc">%2d</span><span class="st">   [Train Loss: </span><span class="sc">%1.5f</span><span class="st">  //  Valid Loss: </span><span class="sc">%1.5f</span><span class="st">]"</span> <span class="op">%</span> (i, loss, val_loss))</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> ()</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">'---------------------'</span>)</span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">'Comparison with MOND:  [Train Loss: </span><span class="sc">%1.5f</span><span class="st">  //  Valid Loss: </span><span class="sc">%1.5f</span><span class="st">]'</span> <span class="op">%</span> (loss_fn(ymond_train, y_train),</span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a>                                                                              loss_fn(ymond_valid, y_valid)))</span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">'---------------------'</span>)</span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> ()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Epoch:  0   [Train Loss: 1.05912  //  Valid Loss: 1.13404]
+Epoch: 100   [Train Loss: 0.09393  //  Valid Loss: 0.07471]
+Epoch: 200   [Train Loss: 0.07501  //  Valid Loss: 0.05540]
+Epoch: 300   [Train Loss: 0.07064  //  Valid Loss: 0.05421]
+Epoch: 400   [Train Loss: 0.06949  //  Valid Loss: 0.05205]
+Epoch: 500   [Train Loss: 0.06878  //  Valid Loss: 0.05173]
+Epoch: 600   [Train Loss: 0.06816  //  Valid Loss: 0.05136]
+Epoch: 700   [Train Loss: 0.06742  //  Valid Loss: 0.05121]
+Epoch: 800   [Train Loss: 0.06701  //  Valid Loss: 0.05139]
+Epoch: 900   [Train Loss: 0.06668  //  Valid Loss: 0.05140]
+
+---------------------
+Comparison with MOND:  [Train Loss: 0.07238  //  Valid Loss: 0.04494]
+---------------------
+
+CPU times: user 54 s, sys: 1.24 s, total: 55.3 s
+Wall time: 42 s</code></pre>
+</div>
+</div>
+<p>We can see that while the NN model is able to have a training loss significantly smaller than the MOND case, the validation loss is similar or even smaller in the MOND case. This exemplifies the difficulty in generalizing the behaviour learned in the training phase.</p>
+<p>Let’s now look at the plot of the training and validation losses as a function of epoch.</p>
+<div class="cell" data-execution_count="88">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>plt.loglog(train_losses, label<span class="op">=</span><span class="st">'train'</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>plt.loglog(valid_losses, label<span class="op">=</span><span class="st">'valid'</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>plt.legend()<span class="op">;</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'epoch'</span>)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'loss'</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-11-16-rotcurves_NN_MOND_files/figure-html/cell-17-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>Here we can see that for this particular train/valid split, the learning rate and the weight decay hyper-parameters, as well as the number of units and linear layers of the NN, are well tuned to have gradually decreasing train and validation losses. Increasing the model’s complexity or adding additional layers (e.g.&nbsp;Dropout) does not seem to help in this case, thus I preferred to stick with a simple 1-layer feedforward NN.</p>
+</section>
+<section id="comparing-rotation-curve-predictions" class="level3">
+<h3 class="anchored" data-anchor-id="comparing-rotation-curve-predictions">Comparing rotation curve predictions</h3>
+<p>Now that we have trained the NN model, we can apply it to the validation set in order to make proper predictions for the rotation curves of disk galaxies just from their surface density profile.</p>
+<div class="cell" data-execution_count="99">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> model(x_valid).squeeze(<span class="op">-</span><span class="dv">1</span>).detach()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>And finally we can plot the rotation curves of the 30 galaxies in the validation set in separate panels. Below I overplot the real data (black points), the MOND empirical expectation (blue dotted curve), and the NN prediction (orange solid curve)</p>
+<div class="cell" data-execution_count="108">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">18</span>,<span class="dv">20</span>), ncols<span class="op">=</span><span class="dv">5</span>, nrows<span class="op">=</span><span class="dv">6</span>, gridspec_kw<span class="op">=</span>{<span class="st">'hspace'</span>:<span class="fl">0.3</span>})</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k,g <span class="kw">in</span> <span class="bu">enumerate</span>(df_sp_mm[<span class="st">'Galaxy'</span>].iloc[valid_idx].unique()):</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    i,j <span class="op">=</span> <span class="bu">int</span>(k<span class="op">/</span><span class="dv">5</span>), k<span class="op">%</span><span class="dv">5</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    ax[i,j].errorbar(df_sp_mm[<span class="st">'R'</span>][df_sp_mm[<span class="st">'Galaxy'</span>]<span class="op">==</span>g], df_sp_mm[<span class="st">'Vobs'</span>][df_sp_mm[<span class="st">'Galaxy'</span>]<span class="op">==</span>g], </span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>                     yerr<span class="op">=</span>df_sp_mm[<span class="st">'e_Vobs'</span>][df_sp_mm[<span class="st">'Galaxy'</span>]<span class="op">==</span>g], c<span class="op">=</span><span class="st">'k'</span>, fmt<span class="op">=</span><span class="st">'.'</span>, lw<span class="op">=</span><span class="fl">0.5</span>, label<span class="op">=</span><span class="st">'data'</span>)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    ax[i,j].plot(df_sp_mm[<span class="st">'R'</span>][df_sp_mm[<span class="st">'Galaxy'</span>]<span class="op">==</span>g], df_sp_mm[<span class="st">'Vmond'</span>][df_sp_mm[<span class="st">'Galaxy'</span>]<span class="op">==</span>g], c<span class="op">=</span><span class="st">'C9'</span>, </span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>                 ls<span class="op">=</span><span class="st">':'</span>, label<span class="op">=</span><span class="st">'MOND'</span>)</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    ax[i,j].plot(df_sp_mm[<span class="st">'R'</span>][df_sp_mm[<span class="st">'Galaxy'</span>]<span class="op">==</span>g], </span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>                 std_y_nn<span class="op">*</span>y_pred[(df_sp_mm[<span class="st">'Galaxy'</span>].iloc[valid_idx]<span class="op">==</span>g).values] <span class="op">+</span> mean_y_nn, c<span class="op">=</span><span class="st">'C1'</span>,</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>                 lw<span class="op">=</span><span class="dv">1</span>, label<span class="op">=</span><span class="st">'NN'</span>)</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    ax[i,j].set_xlim((<span class="dv">0</span>,<span class="va">None</span>))</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    ax[i,j].set_ylim((<span class="dv">0</span>,<span class="va">None</span>))</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>    ax[i,j].set_title(g)</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> i<span class="op">==</span><span class="dv">5</span>: ax[i,j].set_xlabel(<span class="st">'radius / kpc'</span>)<span class="op">;</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> j<span class="op">==</span><span class="dv">0</span>: ax[i,j].set_ylabel(<span class="st">'velocity / km s'</span><span class="op">+</span><span class="st">'$^{-1}$'</span>)<span class="op">;</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>,<span class="dv">0</span>].legend()<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-11-16-rotcurves_NN_MOND_files/figure-html/cell-19-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>All in all, the performance of the NN model are quite satisfactory as it gives nice predictions for <span class="math inline">\(V_{\rm obs}\)</span> for the majority, though not all, galaxies.</p>
+<p>Strikingly, <strong>the predictions of the NN model are extremely close to the MOND rotation curves!</strong> This means that a flexible NN when asked to predict rotation curves from surface densities reduces to something that closely resemble the MOND phenomenology. This suggests that, at least in the SPARC dataset, there is nothing more to learn on the rotation curve shapes that is not encapsulated in the MOND empirical law.</p>
+<p>To see this even better, let’s plot the baryonic acceleration versus the total gravitational acceleration oberved/predicted in the rotation curves. This is the so-called <em>radial acceleration relation</em> plot <a href="https://ui.adsabs.harvard.edu/abs/2016PhRvL.117t1101M">(McGaugh et al.&nbsp;2016)</a>.</p>
+<p>The MOND prediction is pretty clear on this diagram, as <span class="math inline">\(g_{\rm MOND} = g_{\rm bar} \nu(g_{\rm bar}/a_0)\)</span>. On the other hand, to generate this for the NN model I take a toy rotation curve that is flat at 200 km/s and that spans a huge radial radial extension, from 0.1 kpc to 1 Mpc. This is done just to cover smoothly both the low- and high-acceleration regimes in which the SPARC galaxies are found.</p>
+<div class="cell" data-execution_count="128">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> gmond(vbar, r): <span class="cf">return</span> (vbar<span class="op">**</span><span class="dv">2</span> <span class="op">*</span> nu_mond(vbar<span class="op">**</span><span class="dv">2</span><span class="op">/</span>(r<span class="op">*</span><span class="fl">3.086e16</span>)<span class="op">*</span><span class="fl">1e3</span><span class="op">/</span><span class="fl">1.2e-10</span>)) <span class="op">/</span> (r<span class="op">*</span><span class="fl">3.086e16</span>)<span class="op">*</span><span class="fl">1e3</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_normed_rv_tensor(r, v):</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ((torch.vstack((tensor(r),tensor(v))).T <span class="op">-</span> tensor(mean_df_nn.values))<span class="op">/</span>tensor(std_df_nn.values)).<span class="bu">float</span>()</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>r <span class="op">=</span> np.logspace(<span class="op">-</span><span class="fl">1.</span>, <span class="fl">3.</span>, <span class="dv">200</span>)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>v <span class="op">=</span> np.full_like(_r, <span class="fl">200.</span>)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>vmod <span class="op">=</span> (model(get_normed_rv_tensor(r, v)).squeeze(<span class="op">-</span><span class="dv">1</span>).detach()<span class="op">*</span>std_y_nn<span class="op">+</span>mean_y_nn).numpy()</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>fig,ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>,<span class="dv">7</span>))</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>ax.scatter(df_sp_mm[<span class="st">'Gbar'</span>], df_sp_mm[<span class="st">'Vobs'</span>]<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> (df_sp_mm[<span class="st">'R'</span>]<span class="op">*</span><span class="fl">3.086e16</span>) <span class="op">*</span> <span class="fl">1e3</span>, s<span class="op">=</span><span class="dv">2</span>, </span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>           c<span class="op">=</span><span class="st">'grey'</span>, alpha<span class="op">=</span><span class="fl">0.5</span>, label<span class="op">=</span><span class="st">'data'</span>)</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>ax.loglog([<span class="fl">1e-12</span>,<span class="fl">1e-8</span>],[<span class="fl">1e-12</span>,<span class="fl">1e-8</span>], <span class="st">'k-'</span>, lw<span class="op">=</span><span class="fl">0.5</span>, label<span class="op">=</span><span class="st">'1:1'</span>)</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>ax.loglog(v<span class="op">**</span><span class="dv">2</span><span class="op">/</span>(r<span class="op">*</span><span class="fl">3.086e16</span>)<span class="op">*</span><span class="fl">1e3</span>, gmond(v, r), <span class="st">':'</span>, c<span class="op">=</span><span class="st">'C9'</span>, lw<span class="op">=</span><span class="dv">6</span>, label<span class="op">=</span><span class="st">'MOND'</span>)</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>ax.loglog(v<span class="op">**</span><span class="dv">2</span><span class="op">/</span>(r<span class="op">*</span><span class="fl">3.086e16</span>)<span class="op">*</span><span class="fl">1e3</span>, vmod<span class="op">**</span><span class="dv">2</span><span class="op">/</span>(r<span class="op">*</span><span class="fl">3.086e16</span>)<span class="op">*</span><span class="fl">1e3</span>, <span class="st">'-'</span>, c<span class="op">=</span><span class="st">'C1'</span>, lw<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="st">'NN'</span>)</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>ax.tick_params(labelsize<span class="op">=</span><span class="dv">14</span>)</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>ax.legend(fontsize<span class="op">=</span><span class="dv">14</span>)</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="vs">r"$g_{\rm bar}/\rm m\,s^{-2}$"</span>, fontsize<span class="op">=</span><span class="dv">20</span>)<span class="op">;</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="vs">r"$g_{\rm obs}/\rm m\,s^{-2}$"</span>, fontsize<span class="op">=</span><span class="dv">20</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2022-11-16-rotcurves_NN_MOND_files/figure-html/cell-20-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>There is clearly a very good agreement between both models and the data and between the NN and MOND models themselves. Both the data and the two models follow a smooth departure from the 1:1 line at around the charcteristic acceleration scale <span class="math inline">\(a_0=1.2\times 10^{-10}\rm m\,s^{-2}\)</span>.</p>
+<p>The fact that the flexible NN model follows closely the MOND expectations in this diagram is, again, suggesting that the full SPARC dataset can be very well described with just the MOND empirical law plus some scatter.</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

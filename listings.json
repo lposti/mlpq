@@ -1,0 +1,15 @@
+[
+  {
+    "listing": "/index.html",
+    "items": [
+      "/posts/2022-12-08-vcdisk.html",
+      "/posts/2022-11-16-rotcurves_nn_mond.html",
+      "/posts/2022-11-02-gp_rotcurves.html",
+      "/posts/2022-10-17-gaussian-processes.html",
+      "/posts/2022-10-07-variational-autoencoder-rotcurves.html",
+      "/posts/2022-06-10-autoencoder-rotcurves.html",
+      "/posts/2022-03-22-nn-from-scratch.html",
+      "/posts/2022-03-18-neurons-non-linearities.html"
+    ]
+  }
+]
