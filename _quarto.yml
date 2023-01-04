@@ -1,0 +1,19 @@
+project:
+  type: website
+
+website:
+  title: "Lorenzo Posti's Machine Learning Quarto blog"
+  navbar:
+    right:
+      - about.qmd
+      - icon: github
+        href: https://github.com/lposti/
+      - icon: mortarboard-fill
+        href: https://scholar.google.com/citations?user=fDDcGdwAAAAJ&hl=en
+      - icon: book-half
+        href: https://ui.adsabs.harvard.edu/search/q=docs(library%2FfCiUp3W_T7qXYNboezCKAg)&sort=date%20desc%2C%20bibcode%20desc&p_=0
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
