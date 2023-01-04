@@ -2,42 +2,46 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://github.com/lposti/mlpq/about.html</loc>
-    <lastmod>2023-01-04T15:26:24.751Z</lastmod>
+    <lastmod>2023-01-04T16:03:24.008Z</lastmod>
+  </url>
+  <url>
+    <loc>https://github.com/lposti/mlpq/about_blog.html</loc>
+    <lastmod>2023-01-04T16:03:24.804Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-03-18-neurons-non-linearities.html</loc>
-    <lastmod>2023-01-04T15:26:25.799Z</lastmod>
+    <lastmod>2023-01-04T16:03:25.704Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-10-17-gaussian-processes.html</loc>
-    <lastmod>2023-01-04T15:26:26.447Z</lastmod>
+    <lastmod>2023-01-04T16:03:26.568Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-03-22-nn-from-scratch.html</loc>
-    <lastmod>2023-01-04T15:26:26.835Z</lastmod>
+    <lastmod>2023-01-04T16:03:27.072Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-10-07-variational-autoencoder-rotcurves.html</loc>
-    <lastmod>2023-01-04T15:26:27.515Z</lastmod>
+    <lastmod>2023-01-04T16:03:27.932Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-06-10-autoencoder-rotcurves.html</loc>
-    <lastmod>2023-01-04T15:26:28.071Z</lastmod>
+    <lastmod>2023-01-04T16:03:28.660Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-11-16-rotcurves_nn_mond.html</loc>
-    <lastmod>2023-01-04T15:26:28.627Z</lastmod>
+    <lastmod>2023-01-04T16:03:29.352Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-11-02-gp_rotcurves.html</loc>
-    <lastmod>2023-01-04T15:26:29.231Z</lastmod>
+    <lastmod>2023-01-04T16:03:30.168Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-12-08-vcdisk.html</loc>
-    <lastmod>2023-01-04T15:26:29.755Z</lastmod>
+    <lastmod>2023-01-04T16:03:30.872Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/index.html</loc>
-    <lastmod>2023-01-04T15:26:30.191Z</lastmod>
+    <lastmod>2023-01-04T16:03:31.448Z</lastmod>
   </url>
 </urlset>

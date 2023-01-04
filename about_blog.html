@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Lorenzo Posti’s Machine Learning Quarto blog - About Me</title>
+<title>Lorenzo Posti's Machine Learning Quarto blog – about_blog</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -33,6 +33,7 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/quarto-html/quarto.js"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
 <link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
@@ -79,11 +80,11 @@ ul.task-list li input[type="checkbox"] {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item">
-    <a class="nav-link" href="./about_blog.html">
+    <a class="nav-link active" href="./about_blog.html" aria-current="page">
  <span class="menu-text">About this blog</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="./about.html" aria-current="page">
+    <a class="nav-link" href="./about.html">
  <span class="menu-text">About Me</span></a>
   </li>  
   <li class="nav-item compact">
@@ -113,43 +114,24 @@ ul.task-list li input[type="checkbox"] {
 <!-- margin-sidebar -->
     
 <!-- main -->
-<div class="quarto-about-jolla">
-  <img src="posts/LP_round.png" class="about-image
-  round " style="height: 15em; width: 15em;">
- <header id="title-block-header" class="quarto-title-block default">
-<div class="quarto-title">
-<h1 class="title">About Me</h1>
-</div>
-<div class="quarto-title-meta">
-  </div>
-</header><main class="content" id="quarto-document-content">
-<p>I am Lorenzo Posti, currently a postdoctoral researcher at the Astronomical Observatory of Strasbourg (France). Before that, I’ve been doing research in Astrophysics in Groningen (Netherlands), Bologna (Italy), Oxford (UK) and Baltimore (USA).</p>
-<p>You can find my updated <em>list of publications</em> on <a href="https://ui.adsabs.harvard.edu/user/libraries/fCiUp3W_T7qXYNboezCKAg">ADS</a>. I used to maintain a personal website with some details on my research, however I stopped doing that for various reasons. An archived and stripped-down version can be found <a href="https://web.archive.org/web/20210624122158/http://astro.u-strasbg.fr/~posti/">here</a>.</p>
-<p>You can reach out to me at <a href="mailto:lorenzo.posti@gmail.com">lorenzo.posti@gmail.com</a>.</p>
+<main class="content" id="quarto-document-content">
 
 
-</main> 
-  <hr class="about-sep">
-   <div class="about-links">
-  <a href="https://github.com/lposti/" class="about-link">
-    <i class="bi bi-github"></i>
-     <span class="about-link-text">Github</span>
-  </a>
-  <a href="https://linkedin.com" class="about-link">
-    <i class="bi bi-linkedin"></i>
-     <span class="about-link-text">LinkedIn</span>
-  </a>
-  <a href="https://scholar.google.com/citations?user=fDDcGdwAAAAJ&amp;hl=en" class="about-link">
-    <i class="bi bi-mortarboard-fill"></i>
-     <span class="about-link-text">Scholar</span>
-  </a>
-  <a href="https://ui.adsabs.harvard.edu/search/q=docs(library%2FfCiUp3W_T7qXYNboezCKAg)&amp;sort=date%20desc%2C%20bibcode%20desc&amp;p_=0" class="about-link">
-    <i class="bi bi-book-half"></i>
-     <span class="about-link-text">ADS list of publications</span>
-  </a>
-</div>
-</div>
- <!-- /main -->
+
+<p><img src="posts/banner.png" title="A simple NN analysing galaxy images" class="img-fluid"></p>
+<section id="about-this-blog" class="level1">
+<h1>About this blog</h1>
+<section id="an-astronomers-perspective-on-deep-learning" class="level2">
+<h2 class="anchored" data-anchor-id="an-astronomers-perspective-on-deep-learning">An Astronomer’s perspective on Deep Learning</h2>
+<p>This blog contains notes and notebooks of a researcher in Astronomy diving deep into the study of deep learning. What I found during my quest, and what I report here, is meant to be purely anecdotical and it is not necessarily following a logical and sound educational path. The hope, with which I build this blog, is that it will eventually become a useful reference for me to look back at and that also other people, with a similar background to mine, may find some use out of these notes and notebooks.</p>
+<p>My name is Lorenzo Posti and I’m currently a postdoctoral researcher at the <a href="https://astro.unistra.fr/">Strasbourg Observatory</a> (France) specialized in models of galaxy dynamics, which I use to study the origin of galaxies and the nature of dark matter. Find my list of publications at <a href="https://ui.adsabs.harvard.edu/search/q=docs(library%2FfCiUp3W_T7qXYNboezCKAg)&amp;sort=date%20desc%2C%20bibcode%20desc&amp;p_=0">ADS</a></p>
+<p>This site is built using <a href="https://quarto.org/">Quarto</a>. The diagram of the neural network in the banner was made using <a href="http://alexlenail.me/NN-SVG/index.html">NN-SVG</a>, the input image shows isophotal contours of the galaxy NGC 4342 rendered from <a href="https://archive.stsci.edu/missions-and-data/hst">Hubble observations</a>.</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
@@ -170,6 +152,13 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
   }
   toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
   const clipboard = new window.ClipboardJS('.code-copy-button', {
     target: function(trigger) {
       return trigger.previousElementSibling;

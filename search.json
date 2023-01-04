@@ -2,9 +2,16 @@
   {
     "objectID": "about.html",
     "href": "about.html",
-    "title": "About",
+    "title": "About Me",
     "section": "",
     "text": "I am Lorenzo Posti, currently a postdoctoral researcher at the Astronomical Observatory of Strasbourg (France). Before that, I’ve been doing research in Astrophysics in Groningen (Netherlands), Bologna (Italy), Oxford (UK) and Baltimore (USA).\nYou can find my updated list of publications on ADS. I used to maintain a personal website with some details on my research, however I stopped doing that for various reasons. An archived and stripped-down version can be found here.\nYou can reach out to me at lorenzo.posti@gmail.com."
+  },
+  {
+    "objectID": "about_blog.html#an-astronomers-perspective-on-deep-learning",
+    "href": "about_blog.html#an-astronomers-perspective-on-deep-learning",
+    "title": "Lorenzo Posti's Machine Learning Quarto blog",
+    "section": "An Astronomer’s perspective on Deep Learning",
+    "text": "An Astronomer’s perspective on Deep Learning\nThis blog contains notes and notebooks of a researcher in Astronomy diving deep into the study of deep learning. What I found during my quest, and what I report here, is meant to be purely anecdotical and it is not necessarily following a logical and sound educational path. The hope, with which I build this blog, is that it will eventually become a useful reference for me to look back at and that also other people, with a similar background to mine, may find some use out of these notes and notebooks.\nMy name is Lorenzo Posti and I’m currently a postdoctoral researcher at the Strasbourg Observatory (France) specialized in models of galaxy dynamics, which I use to study the origin of galaxies and the nature of dark matter. Find my list of publications at ADS\nThis site is built using Quarto. The diagram of the neural network in the banner was made using NN-SVG, the input image shows isophotal contours of the galaxy NGC 4342 rendered from Hubble observations."
   },
   {
     "objectID": "posts/2022-03-18-neurons-non-linearities.html",
