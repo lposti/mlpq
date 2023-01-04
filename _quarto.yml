@@ -4,6 +4,9 @@ project:
 website:
   title: "Lorenzo Posti's Machine Learning Quarto blog"
   navbar:
+    background: light
+    foreground: dark
+    collapse: true
     right:
       - about.qmd
       - icon: github
@@ -15,7 +18,7 @@ website:
 
 format:
   html:
-    theme: cosmo
+    theme: lumen
     css: styles.css
 
 execute:
