@@ -14,7 +14,7 @@ about:
       text: Scholar
       href: https://scholar.google.com/citations?user=fDDcGdwAAAAJ&hl=en
     - icon: book-half
-      text: ADS list of publications
+      text: ADS
       href: https://ui.adsabs.harvard.edu/search/q=docs(library%2FfCiUp3W_T7qXYNboezCKAg)&sort=date%20desc%2C%20bibcode%20desc&p_=0
 
 ---
@@ -23,7 +23,8 @@ I am Lorenzo Posti, currently a postdoctoral researcher at the Astronomical Obse
 of Strasbourg (France). Before that, I've been doing research in Astrophysics in
 Groningen (Netherlands), Bologna (Italy), Oxford (UK) and Baltimore (USA).
 
-You can find my updated *list of publications* on [ADS](https://ui.adsabs.harvard.edu/user/libraries/fCiUp3W_T7qXYNboezCKAg).
+You can find my updated *list of publications* [here](lop.qmd) or on
+[ADS](https://ui.adsabs.harvard.edu/user/libraries/fCiUp3W_T7qXYNboezCKAg).
 I used to maintain a personal website with some details on my research, however I stopped
 doing that for various reasons. An archived and stripped-down version can be found
 [here](https://web.archive.org/web/20210624122158/http://astro.u-strasbg.fr/~posti/).

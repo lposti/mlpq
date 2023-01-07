@@ -8,14 +8,17 @@ website:
     foreground: dark
     collapse: true
     right:
-      - about_blog.md
-      - about.qmd
+      - text: "About this blog"
+        file: about_blog.md
+      - text: "About me"
+        file: about.qmd
       - icon: github
         href: https://github.com/lposti/
       - icon: mortarboard-fill
         href: https://scholar.google.com/citations?user=fDDcGdwAAAAJ&hl=en
       - icon: book-half
-        href: https://ui.adsabs.harvard.edu/search/q=docs(library%2FfCiUp3W_T7qXYNboezCKAg)&sort=date%20desc%2C%20bibcode%20desc&p_=0
+        text: " "
+        file: lop.qmd
 
 format:
   html:
