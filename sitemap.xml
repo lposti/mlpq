@@ -1,51 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://github.com/lposti/mlpq/about.html</loc>
-    <lastmod>2023-01-07T16:19:21.216Z</lastmod>
+    <loc>https://github.com/lposti/mlpq/index.html</loc>
+    <lastmod>2023-01-19T14:01:43.463Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/about_blog.html</loc>
-    <lastmod>2023-01-07T16:19:21.848Z</lastmod>
+    <lastmod>2023-01-19T14:01:44.095Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/lop.html</loc>
-    <lastmod>2023-01-07T16:19:22.240Z</lastmod>
-  </url>
-  <url>
-    <loc>https://github.com/lposti/mlpq/posts/2022-03-18-neurons-non-linearities.html</loc>
-    <lastmod>2023-01-07T16:19:22.932Z</lastmod>
-  </url>
-  <url>
-    <loc>https://github.com/lposti/mlpq/posts/2022-10-17-gaussian-processes.html</loc>
-    <lastmod>2023-01-07T16:19:23.568Z</lastmod>
-  </url>
-  <url>
-    <loc>https://github.com/lposti/mlpq/posts/2022-03-22-nn-from-scratch.html</loc>
-    <lastmod>2023-01-07T16:19:23.936Z</lastmod>
-  </url>
-  <url>
-    <loc>https://github.com/lposti/mlpq/posts/2022-10-07-variational-autoencoder-rotcurves.html</loc>
-    <lastmod>2023-01-07T16:19:24.604Z</lastmod>
-  </url>
-  <url>
-    <loc>https://github.com/lposti/mlpq/posts/2022-06-10-autoencoder-rotcurves.html</loc>
-    <lastmod>2023-01-07T16:19:25.160Z</lastmod>
+    <lastmod>2023-01-19T14:01:44.503Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-11-16-rotcurves_nn_mond.html</loc>
-    <lastmod>2023-01-07T16:19:25.668Z</lastmod>
-  </url>
-  <url>
-    <loc>https://github.com/lposti/mlpq/posts/2022-11-02-gp_rotcurves.html</loc>
-    <lastmod>2023-01-07T16:19:26.268Z</lastmod>
+    <lastmod>2023-01-19T14:01:45.071Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-12-08-vcdisk.html</loc>
-    <lastmod>2023-01-07T16:19:26.776Z</lastmod>
+    <lastmod>2023-01-19T14:01:45.603Z</lastmod>
   </url>
   <url>
-    <loc>https://github.com/lposti/mlpq/index.html</loc>
-    <lastmod>2023-01-07T16:19:27.196Z</lastmod>
+    <loc>https://github.com/lposti/mlpq/posts/2022-11-02-gp_rotcurves.html</loc>
+    <lastmod>2023-01-19T14:01:46.219Z</lastmod>
+  </url>
+  <url>
+    <loc>https://github.com/lposti/mlpq/posts/2022-06-10-autoencoder-rotcurves.html</loc>
+    <lastmod>2023-01-19T14:01:46.771Z</lastmod>
+  </url>
+  <url>
+    <loc>https://github.com/lposti/mlpq/posts/2022-03-18-neurons-non-linearities.html</loc>
+    <lastmod>2023-01-19T14:01:47.403Z</lastmod>
+  </url>
+  <url>
+    <loc>https://github.com/lposti/mlpq/posts/2022-10-17-gaussian-processes.html</loc>
+    <lastmod>2023-01-19T14:01:48.051Z</lastmod>
+  </url>
+  <url>
+    <loc>https://github.com/lposti/mlpq/posts/2022-03-22-nn-from-scratch.html</loc>
+    <lastmod>2023-01-19T14:01:48.455Z</lastmod>
+  </url>
+  <url>
+    <loc>https://github.com/lposti/mlpq/posts/2023-01-13-diffusion_intro.html</loc>
+    <lastmod>2023-01-19T14:01:48.995Z</lastmod>
+  </url>
+  <url>
+    <loc>https://github.com/lposti/mlpq/posts/2022-10-07-variational-autoencoder-rotcurves.html</loc>
+    <lastmod>2023-01-19T14:01:49.671Z</lastmod>
+  </url>
+  <url>
+    <loc>https://github.com/lposti/mlpq/about.html</loc>
+    <lastmod>2023-01-19T14:01:49.967Z</lastmod>
   </url>
 </urlset>
