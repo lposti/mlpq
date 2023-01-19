@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.313">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Lorenzo Posti">
+<meta name="dcterms.date" content="2023-01-13">
+<meta name="description" content="This notebook is an introduction to diffusion models that are currently state-of-the-art in computer vision and in image generation. I build from scratch a diffusion model able to generate realistic rotation curves starting from purely random noise.">
+
+<title>Lorenzo Posti’s Machine Learning Quarto blog - Intro to diffusion models from scratch</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">Lorenzo Posti’s Machine Learning Quarto blog</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../about_blog.html">
+ <span class="menu-text">About this blog</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html">
+ <span class="menu-text">About me</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/lposti/"><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://scholar.google.com/citations?user=fDDcGdwAAAAJ&amp;hl=en"><i class="bi bi-mortarboard-fill" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../lop.html"><i class="bi bi-book-half" role="img">
+</i> 
+ <span class="menu-text"> </span></a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Intro to diffusion models from scratch</h1>
+                  <div>
+        <div class="description">
+          This notebook is an introduction to diffusion models that are currently state-of-the-art in computer vision and in image generation. I build from scratch a diffusion model able to generate realistic rotation curves starting from purely random noise.
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">neural_network</div>
+                <div class="quarto-category">diffusion</div>
+                <div class="quarto-category">jupyter</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Lorenzo Posti </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">January 13, 2023</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#introduction-to-diffusion-models" id="toc-introduction-to-diffusion-models" class="nav-link active" data-scroll-target="#introduction-to-diffusion-models">Introduction to diffusion models</a></li>
+  <li><a href="#data-generation" id="toc-data-generation" class="nav-link" data-scroll-target="#data-generation">Data generation</a>
+  <ul class="collapse">
+  <li><a href="#normalization-and-trainvalid-splitting" id="toc-normalization-and-trainvalid-splitting" class="nav-link" data-scroll-target="#normalization-and-trainvalid-splitting">Normalization and train/valid splitting</a></li>
+  </ul></li>
+  <li><a href="#adding-noise" id="toc-adding-noise" class="nav-link" data-scroll-target="#adding-noise">Adding noise</a></li>
+  <li><a href="#model" id="toc-model" class="nav-link" data-scroll-target="#model">Model</a></li>
+  <li><a href="#predictions" id="toc-predictions" class="nav-link" data-scroll-target="#predictions">Predictions</a></li>
+  <li><a href="#sampling" id="toc-sampling" class="nav-link" data-scroll-target="#sampling">Sampling</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+<section id="introduction-to-diffusion-models" class="level2">
+<h2 class="anchored" data-anchor-id="introduction-to-diffusion-models">Introduction to diffusion models</h2>
+<p>During the end-of-the-year break I decided to redo the awesome <a href="https://course.fast.ai/">fast.ai course</a> just to refresh some ideas and to keep up to date. In particular, I knew that this year they were redoing the <em>part 2</em> of the course, i.e.&nbsp;the <em>deep learning foundations</em> part, which is a fantastic resource to get a profound understanding of deep learning methods.</p>
+<p>I was very pleseantly surprised to see this year they were going from the deep learning foundations to <strong>stable diffusion</strong>. This got me excited since I felt like this was a great opportunity to learn about the popular diffusion models, which are state-of-the-art in computer vision, to reproduce them and master them myself.</p>
+<p>So, in this notebook I cover the first steps to set up a simple diffusion model from scratch! I am going to: - generate some data (galaxy rotation curves), - add some random amount of noise to the data, - train an autoencoder on the noisy dataset, this is effectively a denoising network, - sampling some realistic rotation curves gradually denoising pure noise.</p>
+<p>The main resources I am using for this are the original paper <a href="https://arxiv.org/pdf/1503.03585.pdf">(Sohl-Dickstein et al.&nbsp;2015)</a> and the <a href="https://arxiv.org/pdf/2006.11239.pdf">DDPM paper</a>, on which stable diffusion and others are built upon, the <a href="https://github.com/fastai/course22p2">notebooks of the fast.ai course part 2</a> and the <a href="https://github.com/huggingface/diffusion-models-class">diffusion models class</a> by huggingface.</p>
+<div class="cell" data-execution_count="1">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pylab <span class="im">as</span> plt</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.special <span class="im">import</span> i0, i1, k0, k1</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> tensor</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> nn</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.nn <span class="im">import</span> functional <span class="im">as</span> F</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch, math</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config Completer.use_jedi <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>matplotlib inline</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="data-generation" class="level2">
+<h2 class="anchored" data-anchor-id="data-generation">Data generation</h2>
+<p>First of all, let’s generate some data that we can later use for training. I’m going to use the same framework that I’ve been using for the blog posts on <a href="https://lposti.github.io/mlpq/posts/2022-06-10-autoencoder-rotcurves.html">autoencoders</a> and <a href="https://lposti.github.io/mlpq/posts/2022-10-07-variational-autoencoder-rotcurves.html">VAEs</a>, so it’s entirely skippable if you’ve seen these previous posts.</p>
+<div class="cell" data-execution_count="2">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>G, H, Dc <span class="op">=</span> <span class="fl">4.301e-9</span>, <span class="dv">70</span>, <span class="fl">200.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fc(x):</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.log(<span class="dv">1</span><span class="op">+</span>x)<span class="op">-</span>x<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>x)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> Vvir(Mh):</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.sqrt((Dc<span class="op">*</span>(H)<span class="op">**</span><span class="dv">2</span><span class="op">/</span><span class="dv">2</span>)<span class="op">**</span>(<span class="fl">1.</span><span class="op">/</span><span class="fl">3.</span>) <span class="op">*</span> (G<span class="op">*</span>Mh)<span class="op">**</span>(<span class="fl">2.</span><span class="op">/</span><span class="fl">3.</span>))</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> Rvir(Mh):</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    rho_c <span class="op">=</span> <span class="fl">3.</span> <span class="op">*</span> (H)<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> (<span class="fl">8.</span> <span class="op">*</span> np.pi <span class="op">*</span> G)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    rho_hat <span class="op">=</span> <span class="fl">4.</span> <span class="op">/</span> <span class="fl">3.</span> <span class="op">*</span> np.pi <span class="op">*</span> Dc <span class="op">*</span> rho_c</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">1e3</span> <span class="op">*</span> np.power(Mh <span class="op">/</span> rho_hat, <span class="fl">1.</span><span class="op">/</span><span class="fl">3.</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell" data-execution_count="3">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># halo concentration--mass relation</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> c(Mh, w_scatter<span class="op">=</span><span class="va">False</span>, H<span class="op">=</span><span class="fl">70.</span>): </span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> w_scatter: <span class="cf">return</span> <span class="fl">10.</span><span class="op">**</span>(<span class="fl">0.905</span> <span class="op">-</span> <span class="fl">0.101</span> <span class="op">*</span> (np.log10(Mh<span class="op">*</span>H<span class="op">/</span><span class="fl">100.</span>)<span class="op">-</span><span class="dv">12</span>) <span class="op">+</span> rng.normal(<span class="fl">0.0</span>, <span class="fl">0.11</span>, <span class="bu">len</span>(Mh)))</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">10.</span><span class="op">**</span>(<span class="fl">0.905</span> <span class="op">-</span> <span class="fl">0.101</span> <span class="op">*</span> (np.log10(Mh<span class="op">*</span>H<span class="op">/</span><span class="fl">100.</span>)<span class="op">-</span><span class="dv">12</span>))</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># disc mass--size relation</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> getRd_fromMd(Md, w_scatter<span class="op">=</span><span class="va">False</span>):</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">''' approximate mass-size relation '''</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> w_scatter: <span class="cf">return</span> <span class="dv">10</span><span class="op">**</span>((np.log10(Md)<span class="op">-</span><span class="fl">10.7</span>)<span class="op">*</span><span class="fl">0.3</span><span class="op">+</span><span class="fl">0.5</span> <span class="op">+</span> rng.normal(<span class="fl">0.0</span>, <span class="fl">0.4</span>, <span class="bu">len</span>(Md)))</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">10</span><span class="op">**</span>((np.log10(Md)<span class="op">-</span><span class="fl">10.7</span>)<span class="op">*</span><span class="fl">0.3</span><span class="op">+</span><span class="fl">0.5</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co"># disc mass--halo mass relation</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> getMh_fromMd(Md, w_scatter<span class="op">=</span><span class="va">False</span>):</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">''' approximate SHMR '''</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> w_scatter: <span class="cf">return</span> <span class="dv">10</span><span class="op">**</span>((np.log10(Md)<span class="op">-</span><span class="fl">10.7</span>)<span class="op">*</span><span class="fl">0.75</span><span class="op">+</span><span class="fl">12.0</span> <span class="op">+</span> rng.normal(<span class="fl">0.0</span>, <span class="fl">0.25</span>, <span class="bu">len</span>(Md)))</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">10</span><span class="op">**</span>((np.log10(Md)<span class="op">-</span><span class="fl">10.7</span>)<span class="op">*</span><span class="fl">0.75</span><span class="op">+</span><span class="fl">12.0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Basically I’m going to generate a dataset of rotation curves of galaxies of different stellar disc masses, dark matter halo masses, disc scale-lengths and halo concentrations. These 4 parameters are not taken at random, but they are constrained by observed galaxy scaling relations. In this way, only the stellar mass is distributed uniformly, while the other parameters are well constrained.</p>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>nsamp <span class="op">=</span> <span class="dv">1000</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>ms <span class="op">=</span> <span class="dv">10</span><span class="op">**</span>rng.uniform(<span class="dv">9</span>, <span class="dv">12</span>, nsamp)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>rd <span class="op">=</span> getRd_fromMd(ms, w_scatter<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>mh <span class="op">=</span> getMh_fromMd(ms, w_scatter<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>cc <span class="op">=</span> c(mh, w_scatter<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>For each tuple of parameters I construct a rotation curve with the following class:</p>
+<div class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> curveMod():</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, Md, Rd, Mh, cc, rad<span class="op">=</span>np.logspace(<span class="op">-</span><span class="dv">1</span>, np.log10(<span class="dv">50</span>), <span class="dv">50</span>)):</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.G, <span class="va">self</span>.H, <span class="va">self</span>.Dc <span class="op">=</span> <span class="fl">4.301e-9</span>, <span class="dv">70</span>, <span class="fl">200.</span>  <span class="co"># physical constants</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.Md, <span class="va">self</span>.Rd <span class="op">=</span> Md, Rd</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.Mh, <span class="va">self</span>.cc <span class="op">=</span> Mh, cc</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.rad <span class="op">=</span> rad</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">hasattr</span>(<span class="va">self</span>.Md, <span class="st">'__len__'</span>):</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.vdisc <span class="op">=</span> [<span class="va">self</span>._vdisc(<span class="va">self</span>.rad, <span class="va">self</span>.Md[i], <span class="va">self</span>.Rd[i]) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(<span class="va">self</span>.Md))]</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.vdm   <span class="op">=</span> [<span class="va">self</span>._vhalo(<span class="va">self</span>.rad, <span class="va">self</span>.Mh[i], <span class="va">self</span>.cc[i]) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(<span class="va">self</span>.Md))]</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.vc    <span class="op">=</span> [np.sqrt(<span class="va">self</span>.vdisc[i]<span class="op">**</span><span class="dv">2</span><span class="op">+</span><span class="va">self</span>.vdm[i]<span class="op">**</span><span class="dv">2</span>) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(<span class="va">self</span>.Md))]</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.vdisc <span class="op">=</span> <span class="va">self</span>._vdisc(<span class="va">self</span>.rad, <span class="va">self</span>.Md, <span class="va">self</span>.Rd)</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.vdm   <span class="op">=</span> <span class="va">self</span>._vhalo(<span class="va">self</span>.rad, <span class="va">self</span>.Mh, <span class="va">self</span>.cc)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.vc    <span class="op">=</span> np.sqrt(<span class="va">self</span>.vdisc<span class="op">**</span><span class="dv">2</span><span class="op">+</span><span class="va">self</span>.vdm<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _fc(<span class="va">self</span>, x): <span class="cf">return</span> np.log(<span class="dv">1</span><span class="op">+</span>x)<span class="op">-</span>x<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>x)</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _Vvir(<span class="va">self</span>, Mh): <span class="cf">return</span> np.sqrt((<span class="va">self</span>.Dc<span class="op">*</span>(<span class="va">self</span>.H)<span class="op">**</span><span class="dv">2</span><span class="op">/</span><span class="dv">2</span>)<span class="op">**</span>(<span class="fl">1.</span><span class="op">/</span><span class="fl">3.</span>) <span class="op">*</span> (<span class="va">self</span>.G<span class="op">*</span>Mh)<span class="op">**</span>(<span class="fl">2.</span><span class="op">/</span><span class="fl">3.</span>))</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _Rvir(<span class="va">self</span>, Mh): <span class="cf">return</span> <span class="fl">1e3</span> <span class="op">*</span> (Mh <span class="op">/</span> (<span class="fl">0.5</span><span class="op">*</span><span class="va">self</span>.Dc<span class="op">*</span><span class="va">self</span>.H<span class="op">**</span><span class="dv">2</span> <span class="op">/</span><span class="va">self</span>.G))<span class="op">**</span>(<span class="fl">1.</span><span class="op">/</span><span class="fl">3.</span>)</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _vhalo(<span class="va">self</span>, R, Mh, cc):</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        <span class="co"># circular velocity of the halo component (NFW model)</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>        rv <span class="op">=</span> <span class="va">self</span>._Rvir(Mh)</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> np.sqrt(<span class="va">self</span>._Vvir(Mh)<span class="op">**</span><span class="dv">2</span><span class="op">*</span>rv<span class="op">/</span>R<span class="op">*</span><span class="va">self</span>._fc(cc<span class="op">*</span>R<span class="op">/</span>rv)<span class="op">/</span><span class="va">self</span>._fc(cc)) </span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> _vdisc(<span class="va">self</span>, R, Md, Rd):</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>        <span class="co"># circular velocity of the disc component (exponential disc)</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>        y <span class="op">=</span> R<span class="op">/</span><span class="fl">2.</span><span class="op">/</span>Rd</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> np.nan_to_num(np.sqrt(<span class="dv">2</span><span class="op">*</span><span class="fl">4.301e-6</span><span class="op">*</span>Md<span class="op">/</span>Rd<span class="op">*</span>y<span class="op">**</span><span class="dv">2</span><span class="op">*</span>(i0(y)<span class="op">*</span>k0(y)<span class="op">-</span>i1(y)<span class="op">*</span>k1(y))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>cm<span class="op">=</span>curveMod(ms,rd,mh,cc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The final sample of rotation curves that I get can be visualized as follows:</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> v <span class="kw">in</span> cm.vc: plt.plot(cm.rad, v)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'radius'</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'velocity'</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-01-13_diffusion_intro_files/figure-html/cell-8-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<section id="normalization-and-trainvalid-splitting" class="level3">
+<h3 class="anchored" data-anchor-id="normalization-and-trainvalid-splitting">Normalization and train/valid splitting</h3>
+<p>As always when dealing with neural networks, it is generally a good idea to normalize the dataset and to randomly shuffle it.</p>
+<div class="cell" data-execution_count="258">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> datanorm(x):  <span class="cf">return</span> (x<span class="op">-</span>x.mean())<span class="op">/</span>x.std(), x.mean(), x.std()</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> datascale(x, m, s): <span class="cf">return</span> x<span class="op">*</span>s<span class="op">+</span>m</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>idshuff <span class="op">=</span> torch.randperm(nsamp)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>xdata <span class="op">=</span> tensor(cm.vc, dtype<span class="op">=</span>torch.<span class="bu">float</span>)[idshuff,:]</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>xdata, xmean, xstd <span class="op">=</span> datanorm(xdata)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>I also split the dataset into training and validation sets.</p>
+<div class="cell" data-execution_count="259">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>fval <span class="op">=</span> <span class="fl">0.20</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>xtrain <span class="op">=</span> xdata[:<span class="bu">int</span>(nsamp<span class="op">*</span>(<span class="fl">1.0</span><span class="op">-</span>fval))]</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>xvalid <span class="op">=</span> xdata[<span class="bu">int</span>(nsamp<span class="op">*</span>(<span class="fl">1.0</span><span class="op">-</span>fval)):]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="adding-noise" class="level2">
+<h2 class="anchored" data-anchor-id="adding-noise">Adding noise</h2>
+<p>We now add noise to our rotation curves, since we want the neural network to learn to de-noise a noisy curve. To do this, we construct a simple <strong>noise scheduler</strong> which is a function that adds noise to our input dataset corresponding to an amount <code>a</code> <span class="math inline">\(\in [0,1]\)</span>, where if <code>a=0</code> the curve is noise-free and if <code>a=1</code> the data is pure Gaussian noise.</p>
+<p>The term scheduler refers to the arbitrary interpolating function that we choose between the two regimes <code>a=0</code> and <code>a=1</code>. For the sake of simplicity, here I chose a linear scheduler.</p>
+<div class="cell" data-execution_count="106">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_noise(x, a):</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    noise <span class="op">=</span> torch.randn_like(x)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> a.shape <span class="op">!=</span> torch.Size([]): a <span class="op">=</span> a.view(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> x<span class="op">*</span>(<span class="dv">1</span><span class="op">-</span>a) <span class="op">+</span> noise<span class="op">*</span>a</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We can see the effect of adding noise to a given rotation curve in the set of plots below, where I gradually increase <code>a</code>.</p>
+<div class="cell" data-execution_count="221">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>fig,ax<span class="op">=</span>plt.subplots(figsize<span class="op">=</span>(<span class="dv">18</span>,<span class="dv">3</span>),ncols<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> commons(ax, a):</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    ax.plot(cm.rad, datascale(add_noise(xtrain[<span class="dv">1</span>],tensor(a)), xmean, xstd), <span class="st">'.'</span>, label<span class="op">=</span><span class="st">'a=</span><span class="sc">%1.1f</span><span class="st">'</span> <span class="op">%</span> a)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    ax.plot(cm.rad, datascale(xtrain[<span class="dv">1</span>], xmean, xstd))</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="st">'radius / kpc'</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    ax.legend()</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    ax.set_ylim(<span class="op">-</span><span class="dv">100</span>,<span class="dv">400</span>)</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>commons(ax[<span class="dv">0</span>], <span class="fl">0.1</span>)</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].set_ylabel(<span class="st">'velocity / km/s'</span>)</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>commons(ax[<span class="dv">1</span>], <span class="fl">0.3</span>)</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>commons(ax[<span class="dv">2</span>], <span class="fl">0.5</span>)</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>commons(ax[<span class="dv">3</span>], <span class="fl">0.7</span>)</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>commons(ax[<span class="dv">4</span>], <span class="fl">1.0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-01-13_diffusion_intro_files/figure-html/cell-13-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+<section id="model" class="level2">
+<h2 class="anchored" data-anchor-id="model">Model</h2>
+<p>Let’s now set up the neural network that will learn to de-noise our rotation curves. This is done with a slightly modified autoencoder model, where I’ve added skip connections, just to be closer to the <a href="https://arxiv.org/abs/1505.04597">U-Net</a> framework which is popular for diffusion models.</p>
+<div class="cell" data-execution_count="290">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> AE_net(nn.Module):</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, ninp, <span class="op">**</span>kwargs):</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.encoder_layers <span class="op">=</span> nn.ModuleList([</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>            nn.Linear(in_features<span class="op">=</span>ninp, out_features<span class="op">=</span><span class="dv">32</span>),</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>            nn.Linear(in_features<span class="op">=</span><span class="dv">32</span>,   out_features<span class="op">=</span><span class="dv">16</span>),</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>            nn.Linear(in_features<span class="op">=</span><span class="dv">16</span>,   out_features<span class="op">=</span><span class="dv">4</span>)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        ])</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.decoder_layers <span class="op">=</span> nn.ModuleList([</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>            nn.Linear(in_features<span class="op">=</span><span class="dv">4</span>,    out_features<span class="op">=</span><span class="dv">16</span>),</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>            nn.Linear(in_features<span class="op">=</span><span class="dv">16</span>,   out_features<span class="op">=</span><span class="dv">32</span>),</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>            nn.Linear(in_features<span class="op">=</span><span class="dv">32</span>,   out_features<span class="op">=</span>ninp)</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>        ])</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.act <span class="op">=</span> nn.SiLU()</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, x):</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>        h <span class="op">=</span> [] <span class="co"># skip connections</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i, l <span class="kw">in</span> <span class="bu">enumerate</span>(<span class="va">self</span>.encoder_layers):</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>            x <span class="op">=</span> <span class="va">self</span>.act(l(x))</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> i <span class="op">&lt;</span> <span class="dv">2</span>: h.append(x) <span class="co"># store for skip connection, for all but final layer</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>              </span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i, l <span class="kw">in</span> <span class="bu">enumerate</span>(<span class="va">self</span>.decoder_layers):</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> i <span class="op">&gt;</span> <span class="dv">0</span>: x <span class="op">+=</span> h.pop() <span class="co"># get stored output for skip connection, for all but first layer</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>            x <span class="op">=</span> <span class="va">self</span>.act(l(x)) <span class="cf">if</span> i<span class="op">&lt;</span><span class="dv">2</span> <span class="cf">else</span> l(x) <span class="co"># final layer without activation</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> x</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="291">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> AE_net(<span class="bu">len</span>(cm.rad))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>And now the training phase. Notice that we first add a random amount of noise to the rotation curve dataset and we pass these noisy curves to the autoencoder. This way, the model will learn to recognize the curves even when noise is added to them.</p>
+<div class="cell" data-execution_count="292">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Adam and MSE Loss</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>loss_func <span class="op">=</span> nn.MSELoss(reduction<span class="op">=</span><span class="st">'mean'</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> torch.optim.Adam(model.parameters(), lr<span class="op">=</span><span class="fl">0.01</span>)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2001</span>):</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># generate noise with random amount</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    noise <span class="op">=</span> torch.rand(xtrain.shape[<span class="dv">0</span>])</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># add noise to data</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    x_noisy <span class="op">=</span> add_noise(xtrain, noise)</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># prediction</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    ymod <span class="op">=</span> model.forward(x_noisy)</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># loss</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    loss <span class="op">=</span> loss_func(xtrain, ymod)</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    optimizer.zero_grad()</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    loss.backward()</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    optimizer.step()</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> epoch<span class="op">%</span><span class="dv">100</span><span class="op">==</span><span class="dv">0</span>: <span class="bu">print</span>(epoch,<span class="st">"train L:</span><span class="sc">%1.2e</span><span class="st">"</span> <span class="op">%</span> loss, <span class="st">"  valid L:</span><span class="sc">%1.2e</span><span class="st">"</span> <span class="op">%</span> loss_func(xvalid, model.forward(xvalid)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>0 train L:1.00e+00   valid L:8.09e-01
+100 train L:2.18e-01   valid L:5.60e-02
+200 train L:1.44e-01   valid L:6.59e-02
+300 train L:1.58e-01   valid L:4.65e-02
+400 train L:1.56e-01   valid L:4.83e-02
+500 train L:1.69e-01   valid L:2.14e-02
+600 train L:1.51e-01   valid L:3.40e-02
+700 train L:1.80e-01   valid L:3.54e-02
+800 train L:1.86e-01   valid L:1.13e-01
+900 train L:1.56e-01   valid L:4.06e-02
+1000 train L:1.61e-01   valid L:2.52e-02
+1100 train L:1.45e-01   valid L:2.53e-02
+1200 train L:1.39e-01   valid L:2.08e-02
+1300 train L:1.89e-01   valid L:2.77e-02
+1400 train L:1.93e-01   valid L:8.97e-02
+1500 train L:1.91e-01   valid L:2.62e-02
+1600 train L:1.56e-01   valid L:2.71e-02
+1700 train L:1.92e-01   valid L:2.74e-02
+1800 train L:1.41e-01   valid L:2.08e-02
+1900 train L:1.58e-01   valid L:3.61e-02
+2000 train L:1.61e-01   valid L:2.42e-02</code></pre>
+</div>
+</div>
+</section>
+<section id="predictions" class="level2">
+<h2 class="anchored" data-anchor-id="predictions">Predictions</h2>
+<p>How well does the model predict the underlying rotation curves from their noisy version? It depends a lot from the noise amount. This is rather intuitive, since for low amount of noise we do expect the model to provide almost perfect predictions, whereas when the data is mostly comprised of noise than signal it is not surprising to see the model failing.</p>
+<p>Let’s see this in action with the following plot:</p>
+<div class="cell" data-execution_count="293">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>fig,ax<span class="op">=</span>plt.subplots(figsize<span class="op">=</span>(<span class="dv">18</span>,<span class="dv">3</span>),ncols<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> xtrain[:<span class="dv">5</span>]</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>noise <span class="op">=</span> tensor([<span class="fl">0.1</span>, <span class="fl">0.2</span>, <span class="fl">0.5</span>, <span class="fl">0.7</span>, <span class="fl">0.9</span>])</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>x_noisy <span class="op">=</span> add_noise(x, noise)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> torch.no_grad():</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    ymod <span class="op">=</span> model(x_noisy).detach()</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, xi <span class="kw">in</span> <span class="bu">enumerate</span>(x):</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    ax[i].plot(cm.rad, datascale(xi, xmean, xstd), c<span class="op">=</span><span class="st">'grey'</span>, label<span class="op">=</span><span class="st">'input data'</span>)</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    ax[i].plot(cm.rad, datascale(x_noisy[i], xmean, xstd), <span class="st">'.'</span>, label<span class="op">=</span><span class="st">'noisy data'</span>)</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    ax[i].plot(cm.rad, datascale(ymod[i], xmean, xstd), <span class="st">'-'</span>, lw<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="st">'model prediction'</span>)</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    ax[i].set_xlabel(<span class="st">'radius / kpc'</span>)</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    ax[i].set_title(<span class="st">'a=</span><span class="sc">%1.1f</span><span class="st">'</span> <span class="op">%</span> noise[i])</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> i <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>        ax[i].set_ylabel(<span class="st">'velocity / km/s'</span>)<span class="op">;</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>        ax[i].legend(loc<span class="op">=</span><span class="st">'lower right'</span>)</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>        ax[i].set_title(<span class="st">'noise amount:   a=</span><span class="sc">%1.1f</span><span class="st">'</span> <span class="op">%</span> noise[i])</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>        </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-01-13_diffusion_intro_files/figure-html/cell-17-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>These results tell us that the model has successfully learned how to denoise high signal-to-noise rotation curves, i.e.&nbsp;data whose noise amount is fairly low, and that it struggels to capture the details of the curve at low signal-to-noise.</p>
+<p>Of course, the autoencoder model that I used is quite simple and it could be further improved by making the model more sophisticated and the noise scheduler more efficient.</p>
+</section>
+<section id="sampling" class="level2">
+<h2 class="anchored" data-anchor-id="sampling">Sampling</h2>
+<p>Finally, let’s have a look at how we can use the model that I’ve just trained to generate new rotation curve data starting from random noise. We could, in principle, simply just feed some random noise into the model since it will give us a rotation curve as output. However, we saw before that the model becomes quite unreliable when the noise is dominant over the signal. So, how do we deal with this?</p>
+<p>A smart, but simple, solution is to borrow from the way a diffusion differential equation is usually solved, that is applying the denoising iteratively in many steps, instead of all in one step. The idea is to start from random, apply just a small step of the denoising network, then take this output and apply another small denoising step to it until we have fully denoised the dataset. In this way, the denoising is done gradually, which allows for complex features to arise in the rotation curve, instead of always just predicting an average curve.</p>
+<p>Let’s apply 30 steps of denoising to 5 initial completely random datasets.</p>
+<div class="cell" data-execution_count="311">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>nsteps <span class="op">=</span> <span class="dv">31</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>x_ini <span class="op">=</span> torch.randn_like(x)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>inputs  <span class="op">=</span> []</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>outputs <span class="op">=</span> []</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(nsteps):</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> torch.no_grad():</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>        ymod <span class="op">=</span> model(x_ini)</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> i<span class="op">%</span><span class="dv">10</span><span class="op">==</span><span class="dv">0</span>:</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>        inputs.append(x_ini)</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>        outputs.append(ymod) </span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    mix_factor <span class="op">=</span> <span class="dv">1</span><span class="op">/</span>(nsteps <span class="op">-</span> i)                    <span class="co"># how much denoising we apply</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>    x_ini <span class="op">=</span> x_ini<span class="op">*</span>(<span class="dv">1</span><span class="op">-</span>mix_factor) <span class="op">+</span> ymod<span class="op">*</span>mix_factor <span class="co"># mix noisy input with model prediction</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>inputs  <span class="op">=</span> torch.stack(inputs)</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>outputs <span class="op">=</span> torch.stack(outputs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Let’s now plot a few of these <em>timesteps</em> for the 5 noise inputs:</p>
+<div class="cell" data-execution_count="342">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">16</span>,<span class="dv">16</span>), nrows<span class="op">=</span>inputs.shape[<span class="dv">1</span>], ncols<span class="op">=</span>inputs.shape[<span class="dv">0</span>], gridspec_kw<span class="op">=</span>{<span class="st">'hspace'</span>:<span class="fl">0.4</span>})</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(inputs.shape[<span class="dv">1</span>]):</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(inputs.shape[<span class="dv">0</span>]):</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>        ax[i,j].plot(cm.rad, datascale(inputs[j,i], xmean, xstd), <span class="st">'.'</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>        ax[i,j].plot(cm.rad, datascale(outputs[j,i], xmean, xstd), <span class="st">'-'</span>, lw<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> i <span class="op">==</span> <span class="dv">0</span>: ax[i,j].set_ylim(<span class="op">-</span><span class="dv">10</span>, <span class="dv">350</span>)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> i <span class="op">==</span> <span class="dv">1</span>: ax[i,j].set_ylim(<span class="dv">0</span>, <span class="dv">250</span>)</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> i <span class="op">==</span> <span class="dv">2</span>: ax[i,j].set_ylim(<span class="op">-</span><span class="dv">100</span>, <span class="dv">300</span>)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> i <span class="op">==</span> <span class="dv">3</span>: ax[i,j].set_ylim(<span class="op">-</span><span class="dv">50</span>, <span class="dv">300</span>)</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> i <span class="op">==</span> <span class="dv">4</span>: ax[i,j].set_ylim(<span class="op">-</span><span class="dv">100</span>, <span class="dv">600</span>)</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> j <span class="op">==</span> <span class="dv">0</span>: ax[i,j].set_ylabel(<span class="st">'velocity / km/s'</span>)</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> i <span class="op">==</span> inputs.shape[<span class="dv">1</span>]<span class="op">-</span><span class="dv">1</span>: ax[i,j].set_xlabel(<span class="st">'radius / kpc'</span>)</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> i <span class="op">==</span> <span class="dv">0</span>: ax[i,j].set_title(<span class="st">'step=</span><span class="sc">%d</span><span class="st">'</span> <span class="op">%</span> (j<span class="op">*</span><span class="dv">10</span>), fontsize<span class="op">=</span><span class="dv">14</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-01-13_diffusion_intro_files/figure-html/cell-19-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>As we can see, with this procedure the model is able to generate some new rotation curves that have significantly different shapes starting from full random noise! This happens since after the autoencoder has been trained to denoise a real rotation curve database, the slow denoising pipeline based on small <em>timesteps</em> that we created allows the model to enhance some peculiar – and non average – feature of the curve that it has inferred by chance from random noise. We observe the model to slowly convince itself that some accumulation of points that happens by chance actually hides some signal, which is cleaned and enhanced at each timestep.</p>
+<p>Next we will see <strong>how to guide</strong> the model to see some particular feature in the random noise that we want in our rotation curve output.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
