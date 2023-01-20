@@ -2,54 +2,58 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://github.com/lposti/mlpq/index.html</loc>
-    <lastmod>2023-01-20T07:58:20.433Z</lastmod>
+    <lastmod>2023-01-20T11:29:45.421Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/about_blog.html</loc>
-    <lastmod>2023-01-20T07:58:21.229Z</lastmod>
+    <lastmod>2023-01-20T11:29:46.077Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/lop.html</loc>
-    <lastmod>2023-01-20T07:58:21.709Z</lastmod>
+    <lastmod>2023-01-20T11:29:46.509Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-11-16-rotcurves_nn_mond.html</loc>
-    <lastmod>2023-01-20T07:58:22.421Z</lastmod>
+    <lastmod>2023-01-20T11:29:47.109Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-12-08-vcdisk.html</loc>
-    <lastmod>2023-01-20T07:58:23.141Z</lastmod>
+    <lastmod>2023-01-20T11:29:47.697Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-11-02-gp_rotcurves.html</loc>
-    <lastmod>2023-01-20T07:58:23.917Z</lastmod>
+    <lastmod>2023-01-20T11:29:48.357Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-06-10-autoencoder-rotcurves.html</loc>
-    <lastmod>2023-01-20T07:58:24.633Z</lastmod>
+    <lastmod>2023-01-20T11:29:48.933Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-03-18-neurons-non-linearities.html</loc>
-    <lastmod>2023-01-20T07:58:25.409Z</lastmod>
+    <lastmod>2023-01-20T11:29:49.645Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-10-17-gaussian-processes.html</loc>
-    <lastmod>2023-01-20T07:58:26.245Z</lastmod>
+    <lastmod>2023-01-20T11:29:50.333Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-03-22-nn-from-scratch.html</loc>
-    <lastmod>2023-01-20T07:58:26.761Z</lastmod>
+    <lastmod>2023-01-20T11:29:50.765Z</lastmod>
   </url>
   <url>
-    <loc>https://github.com/lposti/mlpq/posts/2023-01-diffusion_intro.html</loc>
-    <lastmod>2023-01-20T07:58:27.453Z</lastmod>
+    <loc>https://github.com/lposti/mlpq/posts/2023-01-17-diffusion_conditioning.html</loc>
+    <lastmod>2023-01-20T11:29:51.345Z</lastmod>
+  </url>
+  <url>
+    <loc>https://github.com/lposti/mlpq/posts/2023-01-13-diffusion_intro.html</loc>
+    <lastmod>2023-01-20T11:29:51.909Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/posts/2022-10-07-variational-autoencoder-rotcurves.html</loc>
-    <lastmod>2023-01-20T07:58:28.317Z</lastmod>
+    <lastmod>2023-01-20T11:29:52.653Z</lastmod>
   </url>
   <url>
     <loc>https://github.com/lposti/mlpq/about.html</loc>
-    <lastmod>2023-01-20T07:58:28.689Z</lastmod>
+    <lastmod>2023-01-20T11:29:52.961Z</lastmod>
   </url>
 </urlset>

@@ -124,7 +124,6 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     "search-submit-button-title": "Submit"
   }
 }</script>
-<script async="" src="https://hypothes.is/embed.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
@@ -248,58 +247,64 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>So, in this notebook I cover the first steps to set up a simple diffusion model from scratch! I am going to: - generate some data (galaxy rotation curves), - add some random amount of noise to the data, - train an autoencoder on the noisy dataset, this is effectively a denoising network, - sampling some realistic rotation curves gradually denoising pure noise.</p>
 <p>The main resources I am using for this are the original paper <a href="https://arxiv.org/pdf/1503.03585.pdf">(Sohl-Dickstein et al.&nbsp;2015)</a> and the <a href="https://arxiv.org/pdf/2006.11239.pdf">DDPM paper</a>, on which stable diffusion and others are built upon, the <a href="https://github.com/fastai/course22p2">notebooks of the fast.ai course part 2</a> and the <a href="https://github.com/huggingface/diffusion-models-class">diffusion models class</a> by huggingface.</p>
 <div class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#collapse-hide</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pylab <span class="im">as</span> plt</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.special <span class="im">import</span> i0, i1, k0, k1</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> tensor</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> nn</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.nn <span class="im">import</span> functional <span class="im">as</span> F</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch, math</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config Completer.use_jedi <span class="op">=</span> <span class="va">False</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>matplotlib inline</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pylab <span class="im">as</span> plt</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.special <span class="im">import</span> i0, i1, k0, k1</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> tensor</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> nn</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.nn <span class="im">import</span> functional <span class="im">as</span> F</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch, math</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config Completer.use_jedi <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>matplotlib inline</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 </section>
 <section id="data-generation" class="level2">
 <h2 class="anchored" data-anchor-id="data-generation">Data generation</h2>
-<p>First of all, let’s generate some data that we can later use for training. I’m going to use the same framework that I’ve been using for the blog posts on autoencoders and VAEs, so it’s entirely skippable if you’ve seen these previous posts.</p>
+<p>First of all, let’s generate some data that we can later use for training. I’m going to use the same framework that I’ve been using for the blog posts on <a href="https://lposti.github.io/mlpq/posts/2022-06-10-autoencoder-rotcurves.html">autoencoders</a> and <a href="https://lposti.github.io/mlpq/posts/2022-10-07-variational-autoencoder-rotcurves.html">VAEs</a>, so it’s entirely skippable if you’ve seen these previous posts.</p>
 <div class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">#collapse-hide</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>G, H, Dc <span class="op">=</span> <span class="fl">4.301e-9</span>, <span class="dv">70</span>, <span class="fl">200.</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fc(x):</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.log(<span class="dv">1</span><span class="op">+</span>x)<span class="op">-</span>x<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>x)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> Vvir(Mh):</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.sqrt((Dc<span class="op">*</span>(H)<span class="op">**</span><span class="dv">2</span><span class="op">/</span><span class="dv">2</span>)<span class="op">**</span>(<span class="fl">1.</span><span class="op">/</span><span class="fl">3.</span>) <span class="op">*</span> (G<span class="op">*</span>Mh)<span class="op">**</span>(<span class="fl">2.</span><span class="op">/</span><span class="fl">3.</span>))</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> Rvir(Mh):</span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    rho_c <span class="op">=</span> <span class="fl">3.</span> <span class="op">*</span> (H)<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> (<span class="fl">8.</span> <span class="op">*</span> np.pi <span class="op">*</span> G)</span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    rho_hat <span class="op">=</span> <span class="fl">4.</span> <span class="op">/</span> <span class="fl">3.</span> <span class="op">*</span> np.pi <span class="op">*</span> Dc <span class="op">*</span> rho_c</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">1e3</span> <span class="op">*</span> np.power(Mh <span class="op">/</span> rho_hat, <span class="fl">1.</span><span class="op">/</span><span class="fl">3.</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>G, H, Dc <span class="op">=</span> <span class="fl">4.301e-9</span>, <span class="dv">70</span>, <span class="fl">200.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fc(x):</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.log(<span class="dv">1</span><span class="op">+</span>x)<span class="op">-</span>x<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>x)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> Vvir(Mh):</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.sqrt((Dc<span class="op">*</span>(H)<span class="op">**</span><span class="dv">2</span><span class="op">/</span><span class="dv">2</span>)<span class="op">**</span>(<span class="fl">1.</span><span class="op">/</span><span class="fl">3.</span>) <span class="op">*</span> (G<span class="op">*</span>Mh)<span class="op">**</span>(<span class="fl">2.</span><span class="op">/</span><span class="fl">3.</span>))</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> Rvir(Mh):</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    rho_c <span class="op">=</span> <span class="fl">3.</span> <span class="op">*</span> (H)<span class="op">**</span><span class="dv">2</span> <span class="op">/</span> (<span class="fl">8.</span> <span class="op">*</span> np.pi <span class="op">*</span> G)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    rho_hat <span class="op">=</span> <span class="fl">4.</span> <span class="op">/</span> <span class="fl">3.</span> <span class="op">*</span> np.pi <span class="op">*</span> Dc <span class="op">*</span> rho_c</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">1e3</span> <span class="op">*</span> np.power(Mh <span class="op">/</span> rho_hat, <span class="fl">1.</span><span class="op">/</span><span class="fl">3.</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <div class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">#collapse-hide</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># halo concentration--mass relation</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> c(Mh, w_scatter<span class="op">=</span><span class="va">False</span>, H<span class="op">=</span><span class="fl">70.</span>): </span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> w_scatter: <span class="cf">return</span> <span class="fl">10.</span><span class="op">**</span>(<span class="fl">0.905</span> <span class="op">-</span> <span class="fl">0.101</span> <span class="op">*</span> (np.log10(Mh<span class="op">*</span>H<span class="op">/</span><span class="fl">100.</span>)<span class="op">-</span><span class="dv">12</span>) <span class="op">+</span> rng.normal(<span class="fl">0.0</span>, <span class="fl">0.11</span>, <span class="bu">len</span>(Mh)))</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">10.</span><span class="op">**</span>(<span class="fl">0.905</span> <span class="op">-</span> <span class="fl">0.101</span> <span class="op">*</span> (np.log10(Mh<span class="op">*</span>H<span class="op">/</span><span class="fl">100.</span>)<span class="op">-</span><span class="dv">12</span>))</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co"># disc mass--size relation</span></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> getRd_fromMd(Md, w_scatter<span class="op">=</span><span class="va">False</span>):</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">''' approximate mass-size relation '''</span></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> w_scatter: <span class="cf">return</span> <span class="dv">10</span><span class="op">**</span>((np.log10(Md)<span class="op">-</span><span class="fl">10.7</span>)<span class="op">*</span><span class="fl">0.3</span><span class="op">+</span><span class="fl">0.5</span> <span class="op">+</span> rng.normal(<span class="fl">0.0</span>, <span class="fl">0.4</span>, <span class="bu">len</span>(Md)))</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">10</span><span class="op">**</span>((np.log10(Md)<span class="op">-</span><span class="fl">10.7</span>)<span class="op">*</span><span class="fl">0.3</span><span class="op">+</span><span class="fl">0.5</span>)</span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="co"># disc mass--halo mass relation</span></span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> getMh_fromMd(Md, w_scatter<span class="op">=</span><span class="va">False</span>):</span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">''' approximate SHMR '''</span></span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> w_scatter: <span class="cf">return</span> <span class="dv">10</span><span class="op">**</span>((np.log10(Md)<span class="op">-</span><span class="fl">10.7</span>)<span class="op">*</span><span class="fl">0.75</span><span class="op">+</span><span class="fl">12.0</span> <span class="op">+</span> rng.normal(<span class="fl">0.0</span>, <span class="fl">0.25</span>, <span class="bu">len</span>(Md)))</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">10</span><span class="op">**</span>((np.log10(Md)<span class="op">-</span><span class="fl">10.7</span>)<span class="op">*</span><span class="fl">0.75</span><span class="op">+</span><span class="fl">12.0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># halo concentration--mass relation</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> c(Mh, w_scatter<span class="op">=</span><span class="va">False</span>, H<span class="op">=</span><span class="fl">70.</span>): </span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> w_scatter: <span class="cf">return</span> <span class="fl">10.</span><span class="op">**</span>(<span class="fl">0.905</span> <span class="op">-</span> <span class="fl">0.101</span> <span class="op">*</span> (np.log10(Mh<span class="op">*</span>H<span class="op">/</span><span class="fl">100.</span>)<span class="op">-</span><span class="dv">12</span>) <span class="op">+</span> rng.normal(<span class="fl">0.0</span>, <span class="fl">0.11</span>, <span class="bu">len</span>(Mh)))</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">10.</span><span class="op">**</span>(<span class="fl">0.905</span> <span class="op">-</span> <span class="fl">0.101</span> <span class="op">*</span> (np.log10(Mh<span class="op">*</span>H<span class="op">/</span><span class="fl">100.</span>)<span class="op">-</span><span class="dv">12</span>))</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># disc mass--size relation</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> getRd_fromMd(Md, w_scatter<span class="op">=</span><span class="va">False</span>):</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">''' approximate mass-size relation '''</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> w_scatter: <span class="cf">return</span> <span class="dv">10</span><span class="op">**</span>((np.log10(Md)<span class="op">-</span><span class="fl">10.7</span>)<span class="op">*</span><span class="fl">0.3</span><span class="op">+</span><span class="fl">0.5</span> <span class="op">+</span> rng.normal(<span class="fl">0.0</span>, <span class="fl">0.4</span>, <span class="bu">len</span>(Md)))</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">10</span><span class="op">**</span>((np.log10(Md)<span class="op">-</span><span class="fl">10.7</span>)<span class="op">*</span><span class="fl">0.3</span><span class="op">+</span><span class="fl">0.5</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co"># disc mass--halo mass relation</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> getMh_fromMd(Md, w_scatter<span class="op">=</span><span class="va">False</span>):</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">''' approximate SHMR '''</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> w_scatter: <span class="cf">return</span> <span class="dv">10</span><span class="op">**</span>((np.log10(Md)<span class="op">-</span><span class="fl">10.7</span>)<span class="op">*</span><span class="fl">0.75</span><span class="op">+</span><span class="fl">12.0</span> <span class="op">+</span> rng.normal(<span class="fl">0.0</span>, <span class="fl">0.25</span>, <span class="bu">len</span>(Md)))</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">10</span><span class="op">**</span>((np.log10(Md)<span class="op">-</span><span class="fl">10.7</span>)<span class="op">*</span><span class="fl">0.75</span><span class="op">+</span><span class="fl">12.0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <p>Basically I’m going to generate a dataset of rotation curves of galaxies of different stellar disc masses, dark matter halo masses, disc scale-lengths and halo concentrations. These 4 parameters are not taken at random, but they are constrained by observed galaxy scaling relations. In this way, only the stellar mass is distributed uniformly, while the other parameters are well constrained.</p>
 <div class="cell" data-execution_count="4">
