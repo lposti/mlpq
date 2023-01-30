@@ -17,8 +17,8 @@ nocite: |
 #### Metrics (source: [ADS](https://ui.adsabs.harvard.edu/search/q=docs(library%2FfCiUp3W_T7qXYNboezCKAg)&sort=date%20desc%2C%20bibcode%20desc&p_=0))
 
 - 38 refereed publications, 13 first-author, 12 second-author
-- h-index: 17
-- Citations: 968
+- h-index: 18
+- Citations: 986
 
 
 

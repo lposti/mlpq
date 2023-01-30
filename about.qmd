@@ -2,7 +2,7 @@
 title: "About Me"
 image: posts/LP_round.png
 about:
-  template: jolla
+  template: solana
   links:
     - icon: github
       text: Github
@@ -13,20 +13,31 @@ about:
     - icon: mortarboard-fill
       text: Scholar
       href: https://scholar.google.com/citations?user=fDDcGdwAAAAJ&hl=en
-    - icon: book-half
-      text: ADS
-      href: https://ui.adsabs.harvard.edu/search/q=docs(library%2FfCiUp3W_T7qXYNboezCKAg)&sort=date%20desc%2C%20bibcode%20desc&p_=0
-
+    
 ---
 
-I am Lorenzo Posti, currently a postdoctoral researcher at the Astronomical Observatory
-of Strasbourg (France). Before that, I've been doing research in Astrophysics in
-Groningen (Netherlands), Bologna (Italy), Oxford (UK) and Baltimore (USA).
+I am **Lorenzo Posti**, research scientist with a Ph.D. in Astrophysics and >10 years
+experience in data science, creative modelling, software development, and communication.
+I am always curious about the latest algorithms out on the [arXiv](https://arxiv.org/).
 
-You can find my updated *list of publications* [here](lop.qmd) or on
-[ADS](https://ui.adsabs.harvard.edu/user/libraries/fCiUp3W_T7qXYNboezCKAg).
-I used to maintain a personal website with some details on my research, however I stopped
-doing that for various reasons. An archived and stripped-down version can be found
-[here](https://web.archive.org/web/20210624122158/http://astro.u-strasbg.fr/~posti/).
+In my career I [published papers](lop.qmd), I [shared code online](https://github.com/lposti/),
+I [talked at international conferences](https://www.youtube.com/watch?v=Osj8_Dcx-tc&list=PL13iVyDVPizh0S7laBz3GGre3NJTuq7Rd&index=28&ab_channel=galaxies2016),
+I [organised meetings](https://eas.unige.ch/EAS2020/session.jsp?id=SS19),
+I managed small teams, I mentored students.
+
+Find my full CV [here](resume23.pdf).
 
 You can reach out to me at [lorenzo.posti@gmail.com](mailto:lorenzo.posti@gmail.com).
+
+## Experience
+
+- **Research scientist** | University of Strasbourg (FR) | 2019 - now
+- **Research scientist** | University of Groningen (NL) | 2016 - 2019
+
+## Education
+
+- **Ph.D.** in Astrophysics | University of Bologna (IT) | 2012 - 2015
+[Thesis](https://amsdottorato.unibo.it/7235/)
+
+- **M.Sc.** & **B.Sc.** in Astrophysics | University of Bologna (IT) | 2010 - 2012 |
+Grade: 110/110 *cum laude*
