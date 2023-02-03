@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.335">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Lorenzo Posti">
+<meta name="dcterms.date" content="2023-02-02">
+<meta name="description" content="vaex is a powerful DataFrame library that allows us to visualise, explore, and statistically process huge data files that do not fit into memory in the blink of an eye. I’m coming back to this fantastic library and in this notebook I give just a brief intro of what it can do.">
+
+<title>Lorenzo Posti’s Machine Learning Quarto blog - Lightning-fast big data exploration with vaex</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">Lorenzo Posti’s Machine Learning Quarto blog</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../about_blog.html">
+ <span class="menu-text">About this blog</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html">
+ <span class="menu-text">About me</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/lposti/"><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://scholar.google.com/citations?user=fDDcGdwAAAAJ&amp;hl=en"><i class="bi bi-mortarboard-fill" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../lop.html"><i class="bi bi-book-half" role="img">
+</i> 
+ <span class="menu-text"> </span></a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Lightning-fast big data exploration with <code>vaex</code></h1>
+                  <div>
+        <div class="description">
+          vaex is a powerful DataFrame library that allows us to visualise, explore, and statistically process huge data files that do not fit into memory in the blink of an eye. I’m coming back to this fantastic library and in this notebook I give just a brief intro of what it can do.
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">vaex</div>
+                <div class="quarto-category">big data</div>
+                <div class="quarto-category">jupyter</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Lorenzo Posti </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">February 2, 2023</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#how-can-i-quickly-explore-a-catalog-of-billions-of-rows-on-my-laptop" id="toc-how-can-i-quickly-explore-a-catalog-of-billions-of-rows-on-my-laptop" class="nav-link active" data-scroll-target="#how-can-i-quickly-explore-a-catalog-of-billions-of-rows-on-my-laptop">How can I quickly explore a catalog of billions of rows on my laptop?</a></li>
+  <li><a href="#millions-rows-of-data-nyc-yellow-taxi-dataset-2015" id="toc-millions-rows-of-data-nyc-yellow-taxi-dataset-2015" class="nav-link" data-scroll-target="#millions-rows-of-data-nyc-yellow-taxi-dataset-2015">146 millions rows of data: NYC yellow taxi dataset 2015</a>
+  <ul class="collapse">
+  <li><a href="#visualising-the-dataset-heatmaps" id="toc-visualising-the-dataset-heatmaps" class="nav-link" data-scroll-target="#visualising-the-dataset-heatmaps">Visualising the dataset: heatmaps</a></li>
+  <li><a href="#virtual-columns" id="toc-virtual-columns" class="nav-link" data-scroll-target="#virtual-columns">Virtual columns</a></li>
+  <li><a href="#selections-and-data-filtering" id="toc-selections-and-data-filtering" class="nav-link" data-scroll-target="#selections-and-data-filtering">Selections and data filtering</a></li>
+  <li><a href="#visualising-the-dataset-histograms" id="toc-visualising-the-dataset-histograms" class="nav-link" data-scroll-target="#visualising-the-dataset-histograms">Visualising the dataset: histograms</a></li>
+  <li><a href="#complex-statistics" id="toc-complex-statistics" class="nav-link" data-scroll-target="#complex-statistics">Complex statistics</a></li>
+  <li><a href="#time-series" id="toc-time-series" class="nav-link" data-scroll-target="#time-series">Time series</a></li>
+  </ul></li>
+  <li><a href="#a-taste-of-real-data-exploration" id="toc-a-taste-of-real-data-exploration" class="nav-link" data-scroll-target="#a-taste-of-real-data-exploration">A taste of real data exploration</a>
+  <ul class="collapse">
+  <li><a href="#a-peculiar-group-1" id="toc-a-peculiar-group-1" class="nav-link" data-scroll-target="#a-peculiar-group-1">A peculiar group 1</a></li>
+  <li><a href="#a-peculiar-group-2" id="toc-a-peculiar-group-2" class="nav-link" data-scroll-target="#a-peculiar-group-2">A peculiar group 2</a></li>
+  <li><a href="#how-long-does-it-take-to-reach-jfk-airport-from-lower-manhattan" id="toc-how-long-does-it-take-to-reach-jfk-airport-from-lower-manhattan" class="nav-link" data-scroll-target="#how-long-does-it-take-to-reach-jfk-airport-from-lower-manhattan">How long does it take to reach JFK airport from lower Manhattan?</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+<section id="how-can-i-quickly-explore-a-catalog-of-billions-of-rows-on-my-laptop" class="level2">
+<h2 class="anchored" data-anchor-id="how-can-i-quickly-explore-a-catalog-of-billions-of-rows-on-my-laptop">How can I quickly explore a catalog of billions of rows on my laptop?</h2>
+<p>If you have been asking yourself this question, then <a href="https://vaex.io/docs/index.html"><strong>vaex</strong></a> is your answer!</p>
+<p><em>vaex</em> is an out-of-core DataFrame library capable of processing billions of rows of data per second, and it does so without loading the entire catalog into memory. Thanks to memory mapping, vaex can load gigabytes of data instantly, reading only parts of the data that are absolutely necessary.</p>
+<p>Vaex was conceived to be of help to data scientists willing to quickly visualise and explore a big dataset. In fact, vaex implements histograms and 2D density plots as an effective way to glance through a catalog with millions/billions entries and it can also compute statistics, such as count, mean, correlation, very efficiently, in a matter of seconds on a standard laptop.</p>
+<p>I am coming back to this library after a long break of a couple of years where I haven’t had the chance to use it so much and several cool new features have been added in the meantime. I actually have a rather personal relation with this package since I was in Groningen working together with the founders of <code>vaex.io</code> back in 2016-2018 when the vaex project started. In our research group we used to use this library a lot for our day-to-day catalog explorations, and I’m sure that our feedback and use cases have been critical in the early development.</p>
+<p>In this notebook I am going to showcase some simple things that one can do with vaex.</p>
+</section>
+<section id="millions-rows-of-data-nyc-yellow-taxi-dataset-2015" class="level2">
+<h2 class="anchored" data-anchor-id="millions-rows-of-data-nyc-yellow-taxi-dataset-2015">146 millions rows of data: NYC yellow taxi dataset 2015</h2>
+<p>For this notebook I am going to use the famous dataset containing trip information of taxis in New York City in the year 2015 from the Yellow Taxi company. This dataset contains 146 million rows, occupies about 13 GB of disk space and can be found <a href="https://vaex.io/docs/datasets.html">here</a>.</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> vaex</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="2">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pylab <span class="im">as</span> plt</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>matplotlib inline</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> vaex.<span class="bu">open</span>(<span class="st">'data/yellow_taxi_2015_f32s.hdf5'</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CPU times: user 919 ms, sys: 390 ms, total: 1.31 s
+Wall time: 5.21 s</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+
+<table>
+<thead>
+<tr><th>#                                      </th><th>vendor_id  </th><th>pickup_datetime              </th><th>dropoff_datetime             </th><th>passenger_count  </th><th>payment_type  </th><th>trip_distance  </th><th>pickup_longitude  </th><th>pickup_latitude  </th><th>rate_code  </th><th>store_and_fwd_flag  </th><th>dropoff_longitude  </th><th>dropoff_latitude  </th><th>fare_amount  </th><th>surcharge  </th><th>mta_tax  </th><th>tip_amount  </th><th>tolls_amount  </th><th>total_amount  </th></tr>
+</thead>
+<tbody>
+<tr><td><i style="opacity: 0.6">0</i>          </td><td>VTS        </td><td>2014-12-16 02:26:00.000000000</td><td>2014-12-16 02:28:00.000000000</td><td>1                </td><td>CSH           </td><td>1.09           </td><td>-73.986725        </td><td>40.75642         </td><td>1.0        </td><td>nan                 </td><td>-73.99646          </td><td>40.742893         </td><td>5.0          </td><td>0.5        </td><td>0.5      </td><td>0.0         </td><td>0.0           </td><td>6.0           </td></tr>
+<tr><td><i style="opacity: 0.6">1</i>          </td><td>VTS        </td><td>2014-12-15 18:23:00.000000000</td><td>2014-12-15 18:58:00.000000000</td><td>2                </td><td>              </td><td>6.28           </td><td>-74.00419         </td><td>40.72119         </td><td>1.0        </td><td>nan                 </td><td>-73.97             </td><td>nan               </td><td>nan          </td><td>nan        </td><td>nan      </td><td>nan         </td><td>nan           </td><td>nan           </td></tr>
+<tr><td><i style="opacity: 0.6">2</i>          </td><td>VTS        </td><td>2015-01-15 19:05:39.000000000</td><td>2015-01-15 19:23:42.000000000</td><td>1                </td><td>1             </td><td>1.59           </td><td>-73.9939          </td><td>40.75011         </td><td>1.0        </td><td>0.0                 </td><td>-73.974785         </td><td>40.750618         </td><td>12.0         </td><td>1.0        </td><td>0.5      </td><td>3.25        </td><td>0.0           </td><td>17.05         </td></tr>
+<tr><td><i style="opacity: 0.6">3</i>          </td><td>CMT        </td><td>2015-01-10 20:33:38.000000000</td><td>2015-01-10 20:53:28.000000000</td><td>1                </td><td>1             </td><td>3.3            </td><td>-74.00165         </td><td>40.724243        </td><td>1.0        </td><td>0.0                 </td><td>-73.994415         </td><td>40.75911          </td><td>14.5         </td><td>0.5        </td><td>0.5      </td><td>2.0         </td><td>0.0           </td><td>17.8          </td></tr>
+<tr><td><i style="opacity: 0.6">4</i>          </td><td>CMT        </td><td>2015-01-10 20:33:38.000000000</td><td>2015-01-10 20:43:41.000000000</td><td>1                </td><td>2             </td><td>1.8            </td><td>-73.96334         </td><td>40.802788        </td><td>1.0        </td><td>0.0                 </td><td>-73.95182          </td><td>40.824413         </td><td>9.5          </td><td>0.5        </td><td>0.5      </td><td>0.0         </td><td>0.0           </td><td>10.8          </td></tr>
+<tr><td>...                                    </td><td>...        </td><td>...                          </td><td>...                          </td><td>...              </td><td>...           </td><td>...            </td><td>...               </td><td>...              </td><td>...        </td><td>...                 </td><td>...                </td><td>...               </td><td>...          </td><td>...        </td><td>...      </td><td>...         </td><td>...           </td><td>...           </td></tr>
+<tr><td><i style="opacity: 0.6">146,112,986</i></td><td>VTS        </td><td>2015-12-31 23:59:56.000000000</td><td>2016-01-01 00:08:18.000000000</td><td>5                </td><td>1             </td><td>1.2            </td><td>-73.99381         </td><td>40.72087         </td><td>1.0        </td><td>0.0                 </td><td>-73.98621          </td><td>40.72247          </td><td>7.5          </td><td>0.5        </td><td>0.5      </td><td>1.76        </td><td>0.0           </td><td>10.56         </td></tr>
+<tr><td><i style="opacity: 0.6">146,112,987</i></td><td>CMT        </td><td>2015-12-31 23:59:58.000000000</td><td>2016-01-01 00:05:19.000000000</td><td>2                </td><td>2             </td><td>2.0            </td><td>-73.96527         </td><td>40.76028         </td><td>1.0        </td><td>0.0                 </td><td>-73.939514         </td><td>40.752388         </td><td>7.5          </td><td>0.5        </td><td>0.5      </td><td>0.0         </td><td>0.0           </td><td>8.8           </td></tr>
+<tr><td><i style="opacity: 0.6">146,112,988</i></td><td>CMT        </td><td>2015-12-31 23:59:59.000000000</td><td>2016-01-01 00:12:55.000000000</td><td>2                </td><td>2             </td><td>3.8            </td><td>-73.9873          </td><td>40.73908         </td><td>1.0        </td><td>0.0                 </td><td>-73.98867          </td><td>40.6933           </td><td>13.5         </td><td>0.5        </td><td>0.5      </td><td>0.0         </td><td>0.0           </td><td>14.8          </td></tr>
+<tr><td><i style="opacity: 0.6">146,112,989</i></td><td>VTS        </td><td>2015-12-31 23:59:59.000000000</td><td>2016-01-01 00:10:26.000000000</td><td>1                </td><td>2             </td><td>1.96           </td><td>-73.99756         </td><td>40.725693        </td><td>1.0        </td><td>0.0                 </td><td>-74.01712          </td><td>40.705322         </td><td>8.5          </td><td>0.5        </td><td>0.5      </td><td>0.0         </td><td>0.0           </td><td>9.8           </td></tr>
+<tr><td><i style="opacity: 0.6">146,112,990</i></td><td>VTS        </td><td>2015-12-31 23:59:59.000000000</td><td>2016-01-01 00:21:30.000000000</td><td>1                </td><td>1             </td><td>1.06           </td><td>-73.9844          </td><td>40.767258        </td><td>1.0        </td><td>0.0                 </td><td>-73.99098          </td><td>40.76057          </td><td>13.5         </td><td>0.5        </td><td>0.5      </td><td>2.96        </td><td>0.0           </td><td>17.76         </td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>vaex is able to load and read this catalog in ~5 seconds!</p>
+<section id="visualising-the-dataset-heatmaps" class="level3">
+<h3 class="anchored" data-anchor-id="visualising-the-dataset-heatmaps">Visualising the dataset: heatmaps</h3>
+<p>The catalog contains a lot of valuable information, such as pickup and dropoff locations and times, trip distance, fare amount etc. that can be used to gain some insights on common behaviours of taxi rides in the city. However, given the size of the catalog we might feel overwhelmed as to how to start exploring this wealth of information.</p>
+<p>Possibly the first thing that we would like to do is to plot pickup and dropoff locations and see where most of them are concentrated. But we cannot do it with a simple scatter plot, as the amount of points would overcrowd the plot making it not readable. For this reason, vaex implements efficient 2D density plots!</p>
+<p>Let’s define some reasonable ranges in longitude and latitude for this dataset:</p>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>lon_min, lon_max <span class="op">=</span> <span class="op">-</span><span class="fl">74.05</span>, <span class="op">-</span><span class="fl">73.75</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>lat_min, lat_max <span class="op">=</span> <span class="fl">40.58</span>, <span class="fl">40.9</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>and let’s start glancing on the dataset:</p>
+<div class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>df.viz.heatmap(df.pickup_longitude, df.pickup_latitude, f<span class="op">=</span><span class="st">"log1p"</span>, limits<span class="op">=</span>[[lon_min, lon_max], [lat_min, lat_max]], </span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>               shape<span class="op">=</span><span class="dv">512</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CPU times: user 2.83 s, sys: 405 ms, total: 3.23 s
+Wall time: 1.29 s</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<pre><code>&lt;matplotlib.image.AxesImage at 0x7f9b5ebacf90&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-02-02_trying_vaex_files/figure-html/cell-7-output-3.png" class="img-fluid"></p>
+</div>
+</div>
+<p>It takes only a handful of seconds for vaex to project ~150 million pickup locations onto a 512 squared grid!</p>
+<p>With this density plot we are able to immediately recognize that the areas where most pickups have been made are, perhaps unsurprisingly, Midtown and Downtown Manhattan and JFK and La Guardia airports. In fact, the plot shows the logarithm of the number counts (+1, to avoid underflows) of pickup locations of taxi rides in each grid cell. In the call to <code>df.viz.heatmap</code> the argument <code>f='log1p'</code> is used to plot the log10 of the counts.</p>
+</section>
+<section id="virtual-columns" class="level3">
+<h3 class="anchored" data-anchor-id="virtual-columns">Virtual columns</h3>
+<p>It is convenient to recast and manipulate some of the columns of the dataset, but we do not want to copy or store new data columns on memory since it would not be efficient. Vaex deals with this issue by creating <em>virtual columns</em>, which are just algebric expressions of some columns of the DataFrame and are computed on the fly when they are really needed.</p>
+<p>Let’s make a couple of virtual columns which will be useful later on.</p>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'pickup_hour'</span>] <span class="op">=</span> df.pickup_datetime.dt.hour</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'delta_t'</span>] <span class="op">=</span> df.pickup_datetime <span class="op">-</span> np.datetime64(<span class="st">'2014-12-31'</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'trip_duration'</span>] <span class="op">=</span> df.dropoff_datetime <span class="op">-</span> df.pickup_datetime</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="selections-and-data-filtering" class="level3">
+<h3 class="anchored" data-anchor-id="selections-and-data-filtering">Selections and data filtering</h3>
+<p>As always the case in a real-life dataset, there are some inconsistent (or outright wrong) entries which we can just filter out, as a first step, just to work with a cleaner catalog. vaex, similarly to pandas, makes filtering extremely easy and it executes that very efficiently.</p>
+<p>Let’s create a new virtual DataFrame without copying the whole catalog</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>select <span class="op">=</span> (df.fare_amount<span class="op">&gt;</span><span class="dv">0</span>) <span class="op">&amp;</span> (df.fare_amount<span class="op">&lt;</span><span class="fl">1e3</span>) <span class="op">&amp;</span> (df.trip_duration.td.seconds <span class="op">&gt;</span> <span class="dv">0</span>) <span class="op">&amp;</span> (df.trip_distance<span class="op">&gt;</span><span class="fl">0.1</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>df_g <span class="op">=</span> df[select]</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>df_g</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CPU times: user 77.2 ms, sys: 106 ms, total: 183 ms
+Wall time: 186 ms</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+
+<table>
+<thead>
+<tr><th>#                                      </th><th>vendor_id  </th><th>pickup_datetime              </th><th>dropoff_datetime             </th><th>passenger_count  </th><th>payment_type  </th><th>trip_distance  </th><th>pickup_longitude  </th><th>pickup_latitude  </th><th>rate_code  </th><th>store_and_fwd_flag  </th><th>dropoff_longitude  </th><th>dropoff_latitude  </th><th>fare_amount  </th><th>surcharge  </th><th>mta_tax  </th><th>tip_amount  </th><th>tolls_amount  </th><th>total_amount  </th><th>pickup_hour  </th><th>delta_t           </th><th>trip_duration  </th></tr>
+</thead>
+<tbody>
+<tr><td><i style="opacity: 0.6">0</i>          </td><td>VTS        </td><td>2014-12-16 02:26:00.000000000</td><td>2014-12-16 02:28:00.000000000</td><td>1                </td><td>CSH           </td><td>1.09           </td><td>-73.986725        </td><td>40.75642         </td><td>1.0        </td><td>nan                 </td><td>-73.99646          </td><td>40.742893         </td><td>5.0          </td><td>0.5        </td><td>0.5      </td><td>0.0         </td><td>0.0           </td><td>6.0           </td><td>2            </td><td>-15 days +2:26:00 </td><td>0 days +0:02:00</td></tr>
+<tr><td><i style="opacity: 0.6">1</i>          </td><td>VTS        </td><td>2015-01-15 19:05:39.000000000</td><td>2015-01-15 19:23:42.000000000</td><td>1                </td><td>1             </td><td>1.59           </td><td>-73.9939          </td><td>40.75011         </td><td>1.0        </td><td>0.0                 </td><td>-73.974785         </td><td>40.750618         </td><td>12.0         </td><td>1.0        </td><td>0.5      </td><td>3.25        </td><td>0.0           </td><td>17.05         </td><td>19           </td><td>15 days +19:05:39 </td><td>0 days +0:18:03</td></tr>
+<tr><td><i style="opacity: 0.6">2</i>          </td><td>CMT        </td><td>2015-01-10 20:33:38.000000000</td><td>2015-01-10 20:53:28.000000000</td><td>1                </td><td>1             </td><td>3.3            </td><td>-74.00165         </td><td>40.724243        </td><td>1.0        </td><td>0.0                 </td><td>-73.994415         </td><td>40.75911          </td><td>14.5         </td><td>0.5        </td><td>0.5      </td><td>2.0         </td><td>0.0           </td><td>17.8          </td><td>20           </td><td>10 days +20:33:38 </td><td>0 days +0:19:50</td></tr>
+<tr><td><i style="opacity: 0.6">3</i>          </td><td>CMT        </td><td>2015-01-10 20:33:38.000000000</td><td>2015-01-10 20:43:41.000000000</td><td>1                </td><td>2             </td><td>1.8            </td><td>-73.96334         </td><td>40.802788        </td><td>1.0        </td><td>0.0                 </td><td>-73.95182          </td><td>40.824413         </td><td>9.5          </td><td>0.5        </td><td>0.5      </td><td>0.0         </td><td>0.0           </td><td>10.8          </td><td>20           </td><td>10 days +20:33:38 </td><td>0 days +0:10:03</td></tr>
+<tr><td><i style="opacity: 0.6">4</i>          </td><td>CMT        </td><td>2015-01-10 20:33:39.000000000</td><td>2015-01-10 20:35:31.000000000</td><td>1                </td><td>2             </td><td>0.5            </td><td>-74.00909         </td><td>40.713818        </td><td>1.0        </td><td>0.0                 </td><td>-74.004326         </td><td>40.719986         </td><td>3.5          </td><td>0.5        </td><td>0.5      </td><td>0.0         </td><td>0.0           </td><td>4.8           </td><td>20           </td><td>10 days +20:33:39 </td><td>0 days +0:01:52</td></tr>
+<tr><td>...                                    </td><td>...        </td><td>...                          </td><td>...                          </td><td>...              </td><td>...           </td><td>...            </td><td>...               </td><td>...              </td><td>...        </td><td>...                 </td><td>...                </td><td>...               </td><td>...          </td><td>...        </td><td>...      </td><td>...         </td><td>...           </td><td>...           </td><td>...          </td><td>...               </td><td>...            </td></tr>
+<tr><td><i style="opacity: 0.6">144,754,723</i></td><td>VTS        </td><td>2015-12-31 23:59:56.000000000</td><td>2016-01-01 00:08:18.000000000</td><td>5                </td><td>1             </td><td>1.2            </td><td>-73.99381         </td><td>40.72087         </td><td>1.0        </td><td>0.0                 </td><td>-73.98621          </td><td>40.72247          </td><td>7.5          </td><td>0.5        </td><td>0.5      </td><td>1.76        </td><td>0.0           </td><td>10.56         </td><td>23           </td><td>365 days +23:59:56</td><td>0 days +0:08:22</td></tr>
+<tr><td><i style="opacity: 0.6">144,754,724</i></td><td>CMT        </td><td>2015-12-31 23:59:58.000000000</td><td>2016-01-01 00:05:19.000000000</td><td>2                </td><td>2             </td><td>2.0            </td><td>-73.96527         </td><td>40.76028         </td><td>1.0        </td><td>0.0                 </td><td>-73.939514         </td><td>40.752388         </td><td>7.5          </td><td>0.5        </td><td>0.5      </td><td>0.0         </td><td>0.0           </td><td>8.8           </td><td>23           </td><td>365 days +23:59:58</td><td>0 days +0:05:21</td></tr>
+<tr><td><i style="opacity: 0.6">144,754,725</i></td><td>CMT        </td><td>2015-12-31 23:59:59.000000000</td><td>2016-01-01 00:12:55.000000000</td><td>2                </td><td>2             </td><td>3.8            </td><td>-73.9873          </td><td>40.73908         </td><td>1.0        </td><td>0.0                 </td><td>-73.98867          </td><td>40.6933           </td><td>13.5         </td><td>0.5        </td><td>0.5      </td><td>0.0         </td><td>0.0           </td><td>14.8          </td><td>23           </td><td>365 days +23:59:59</td><td>0 days +0:12:56</td></tr>
+<tr><td><i style="opacity: 0.6">144,754,726</i></td><td>VTS        </td><td>2015-12-31 23:59:59.000000000</td><td>2016-01-01 00:10:26.000000000</td><td>1                </td><td>2             </td><td>1.96           </td><td>-73.99756         </td><td>40.725693        </td><td>1.0        </td><td>0.0                 </td><td>-74.01712          </td><td>40.705322         </td><td>8.5          </td><td>0.5        </td><td>0.5      </td><td>0.0         </td><td>0.0           </td><td>9.8           </td><td>23           </td><td>365 days +23:59:59</td><td>0 days +0:10:27</td></tr>
+<tr><td><i style="opacity: 0.6">144,754,727</i></td><td>VTS        </td><td>2015-12-31 23:59:59.000000000</td><td>2016-01-01 00:21:30.000000000</td><td>1                </td><td>1             </td><td>1.06           </td><td>-73.9844          </td><td>40.767258        </td><td>1.0        </td><td>0.0                 </td><td>-73.99098          </td><td>40.76057          </td><td>13.5         </td><td>0.5        </td><td>0.5      </td><td>2.96        </td><td>0.0           </td><td>17.76         </td><td>23           </td><td>365 days +23:59:59</td><td>0 days +0:21:31</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Notice again how time-efficient is vaex in making all these computations!</p>
+<p>With this simple filter we have excluded just about ~1.5 millions bad entries.</p>
+</section>
+<section id="visualising-the-dataset-histograms" class="level3">
+<h3 class="anchored" data-anchor-id="visualising-the-dataset-histograms">Visualising the dataset: histograms</h3>
+<p>We can make a 1D histogram of a particular column of the dataset super rapidly with vaex</p>
+<div class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>df_g.viz.histogram(df_g.fare_amount, limits<span class="op">=</span>[<span class="st">'99.9%'</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CPU times: user 3.85 s, sys: 187 ms, total: 4.04 s
+Wall time: 1.59 s</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-02-02_trying_vaex_files/figure-html/cell-10-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<p>In this case I plotted the histogram of <code>fare_amount</code> excluding just the 0.1% of the data, which fall above 100 dollars. Besides the peak at around ~10 dollars, there is another interesting one around ~50 dollars, more on that later.</p>
+<p>Vaex is capable of computing also more complex statistics than simple number counts or means. In fact, we can, for instance, compute the mean of a given quantity in bins defined by another variable. Let’s try computing the mean tip given in bins of increasing amount of the fare.</p>
+</section>
+<section id="complex-statistics" class="level3">
+<h3 class="anchored" data-anchor-id="complex-statistics">Complex statistics</h3>
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>df_g.mean(<span class="st">"tip_amount"</span>, binby<span class="op">=</span><span class="st">"fare_amount"</span>, limits<span class="op">=</span>[<span class="dv">0</span>,<span class="dv">100</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<pre><code>array([ 1.24615086,  1.31824944,  1.53340081,  0.51718142,  0.46147066,
+        0.59263165,  0.69311445,  0.791446  ,  0.91056176,  1.00057614,
+        1.0953817 ,  1.19607773,  1.2916218 ,  1.38734044,  1.47117175,
+        1.55433318,  1.63946631,  1.75428071,  1.83764361,  1.90678516,
+        1.98301335,  2.06862393,  2.17303128,  2.28266249,  2.4220901 ,
+        2.51835345,  2.63312695,  2.74727874,  5.68542252,  2.98677164,
+        3.12845026,  3.27011756,  3.42395457,  3.62165357,  3.76862303,
+        3.91716274,  4.06953834,  4.23343799,  4.37480845,  4.51016812,
+        4.63398971,  4.72375694,  4.80639364,  4.88026463,  4.96728114,
+        5.05044797,  5.12848066,  5.197662  ,  5.27430279,  5.37765361,
+        5.46007357,  5.50465598,  5.60081093,  5.67422745,  5.73286278,
+        5.76873598,  5.83555711,  6.04623598,  5.90150785,  5.84556602,
+        5.89371439,  5.87853757,  5.94627038,  5.99542183,  6.11809826,
+        6.05648019,  6.76603627,  6.20229916,  6.2231958 ,  6.33261319,
+        6.46269043,  6.41795398,  6.59186713,  6.59528146,  6.92590724,
+        7.13018893,  6.94661037,  7.35025128,  7.49016642,  7.75709676,
+        7.84000946,  8.1281891 ,  8.29819123,  8.05789741,  8.67244861,
+        8.61512802,  8.72034807,  8.93856761,  9.03269166,  8.39664239,
+        9.34130797,  9.467738  ,  9.51242487,  9.5811878 ,  9.62780318,
+        9.66103591,  9.45409184,  9.9649135 ,  9.68966373, 10.23593208,
+        9.98999632, 10.08155139,  9.07530799,  9.9524003 , 10.01679726,
+        9.93280939, 10.18489565, 10.21282936, 10.32566491, 10.32376141,
+       10.80838988, 11.63791817, 11.24698724, 10.94306168, 10.76438269,
+       10.18756658, 11.24492771, 11.68225627, 11.57025264, 10.95499679,
+       11.40989499, 12.12161252, 11.95401141, 11.8784962 , 11.26602758,
+       12.17350503, 11.58340128, 11.74627241])</code></pre>
+</div>
+</div>
+<p>And we can plot it with vaex’s functions</p>
+<div class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>df_g.viz.histogram(df_g.fare_amount, what<span class="op">=</span><span class="st">'mean(tip_amount)'</span>, limits<span class="op">=</span>[<span class="dv">0</span>,<span class="dv">100</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CPU times: user 2.17 s, sys: 40.3 ms, total: 2.21 s
+Wall time: 722 ms</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-02-02_trying_vaex_files/figure-html/cell-12-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+<section id="time-series" class="level3">
+<h3 class="anchored" data-anchor-id="time-series">Time series</h3>
+<p>Having defined a reference point in time, being Dec.&nbsp;31st 2014, we can use the <code>delta_t</code> virtual column to visualise the time series of the number counts of taxi trips</p>
+<div class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>size <span class="op">=</span> <span class="dv">380</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>df_g.viz.histogram(<span class="st">"pickup_datetime"</span>, grid<span class="op">=</span>df_g.count(binby<span class="op">=</span><span class="st">"delta_t"</span>, shape<span class="op">=</span>size), shape<span class="op">=</span>size, figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">3</span>))</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>plt.gca().axvline(np.datetime64(<span class="st">'2015-12-25'</span>), c<span class="op">=</span><span class="st">'k'</span>, ls<span class="op">=</span><span class="st">'--'</span>, lw<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>plt.gca().axvline(np.datetime64(<span class="st">'2015-01-27'</span>), c<span class="op">=</span><span class="st">'k'</span>, ls<span class="op">=</span><span class="st">'--'</span>, lw<span class="op">=</span><span class="fl">0.5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="11">
+<pre><code>&lt;matplotlib.lines.Line2D at 0x7f9b5fc729d0&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-02-02_trying_vaex_files/figure-html/cell-13-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<p>This plot shows the sinusoidal behaviour of the number counts of trips due to workdays/weekends. We can notice that there are 2 deep low points that stand out, which are the 2 days where the least amount of taxi rides have been hired: Christmas day and Jan.&nbsp;27th, which was during a big snow storm in New York.</p>
+<p>Similarly we can explore which were the more profitable days of the year for the Yellow taxi company, by plotting the sum of the total amounts paid by their clients</p>
+<div class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>df_g.viz.histogram(<span class="st">"pickup_datetime"</span>, grid<span class="op">=</span>df_g.<span class="bu">sum</span>(<span class="st">"total_amount"</span>, binby<span class="op">=</span><span class="st">"delta_t"</span>, shape<span class="op">=</span>size), </span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>                   shape<span class="op">=</span>size, figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">3</span>), ylabel<span class="op">=</span><span class="st">"sum(total_amount)"</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>plt.gca().axvline(np.datetime64(<span class="st">'2015-12-25'</span>), c<span class="op">=</span><span class="st">'k'</span>, ls<span class="op">=</span><span class="st">'--'</span>, lw<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>plt.gca().axvline(np.datetime64(<span class="st">'2015-01-27'</span>), c<span class="op">=</span><span class="st">'k'</span>, ls<span class="op">=</span><span class="st">'--'</span>, lw<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>plt.gca().axvline(np.datetime64(<span class="st">'2015-01-18'</span>), c<span class="op">=</span><span class="st">'r'</span>, ls<span class="op">=</span><span class="st">'--'</span>, lw<span class="op">=</span><span class="fl">0.5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="12">
+<pre><code>&lt;matplotlib.lines.Line2D at 0x7f9b1382ded0&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-02-02_trying_vaex_files/figure-html/cell-14-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<p>The plot is very similar to the one above, since the more trips the more revenue, but anyway there is a particular day, Jan.&nbsp;18th, where the taxis have charged for slightly more than average per trip, thus making it the most profitable day of the year.</p>
+<p>In fact, we can also look at which were the days where taxis have accumulated the higher number of miles travelled, by calculating the sum of the trip distances per day</p>
+<div class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>df_g.viz.histogram(<span class="st">"pickup_datetime"</span>, grid<span class="op">=</span>df_g.<span class="bu">sum</span>(<span class="st">"trip_distance"</span>, binby<span class="op">=</span><span class="st">"delta_t"</span>, shape<span class="op">=</span>size), </span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>                   shape<span class="op">=</span>size, figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">3</span>), ylabel<span class="op">=</span><span class="st">"sum(trip_distance)"</span>, f<span class="op">=</span><span class="st">'log10'</span>)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>plt.gca().axvline(np.datetime64(<span class="st">'2015-12-25'</span>), c<span class="op">=</span><span class="st">'k'</span>, ls<span class="op">=</span><span class="st">'--'</span>, lw<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>plt.gca().axvline(np.datetime64(<span class="st">'2015-01-27'</span>), c<span class="op">=</span><span class="st">'k'</span>, ls<span class="op">=</span><span class="st">'--'</span>, lw<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>plt.gca().axvline(np.datetime64(<span class="st">'2015-01-18'</span>), c<span class="op">=</span><span class="st">'r'</span>, ls<span class="op">=</span><span class="st">'--'</span>, lw<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>plt.gca().axvline(np.datetime64(<span class="st">'2015-04-01'</span>), c<span class="op">=</span><span class="st">'g'</span>, ls<span class="op">=</span><span class="st">'--'</span>, lw<span class="op">=</span><span class="fl">0.5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/Users/lposti/anaconda/envs/py37/lib/python3.7/site-packages/vaex/viz/mpl.py:146: RuntimeWarning: divide by zero encountered in log10
+  fgrid = f(grid)</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="13">
+<pre><code>&lt;matplotlib.lines.Line2D at 0x7f9b133b0c10&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-02-02_trying_vaex_files/figure-html/cell-15-output-3.png" class="img-fluid"></p>
+</div>
+</div>
+<p>This shows that while Jan 18th was the mos profitable day of the year, it was actually just average in terms of how many miles the taxis have collectively travelled. Instead, the day with most miles travelled is April 1st.</p>
+</section>
+</section>
+<section id="a-taste-of-real-data-exploration" class="level2">
+<h2 class="anchored" data-anchor-id="a-taste-of-real-data-exploration">A taste of real data exploration</h2>
+<p>Naturally we are interested at navigating and exploring in quite more detail a rich dataset such as the NYC taxi and vaex is designed just to do that.</p>
+<p>As an example, let’s have a look at the space of trip duration vs.&nbsp;trip distance</p>
+<div class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>df_g.viz.heatmap(df_g.trip_duration.td.seconds, df_g.trip_distance, limits<span class="op">=</span>[[<span class="dv">0</span>,<span class="dv">15000</span>],[<span class="dv">0</span>,<span class="dv">50</span>]], </span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>                 shape<span class="op">=</span><span class="dv">501</span>, f<span class="op">=</span><span class="st">'log1p'</span>, vmin<span class="op">=</span><span class="dv">0</span>, vmax<span class="op">=</span><span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="14">
+<pre><code>&lt;matplotlib.image.AxesImage at 0x7f9b13b76550&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-02-02_trying_vaex_files/figure-html/cell-17-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<section id="a-peculiar-group-1" class="level3">
+<h3 class="anchored" data-anchor-id="a-peculiar-group-1">A peculiar group 1</h3>
+<p>We see an obvious correlation of the two quantities, but that’s not the only clear feature in this plot. There are interesting horizontal stripes - indicating that trips of equal distance in miles can take wildly different time presumably because of traffic - and a group of data that follows the overall correlation, but appears separate with respect to the main cluster of data. Let’s select this small set of points</p>
+<div class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>df_g.viz.heatmap(df.trip_duration.td.seconds, df.trip_distance, limits<span class="op">=</span>[[<span class="dv">0</span>,<span class="dv">15000</span>],[<span class="dv">0</span>,<span class="dv">50</span>]], </span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>               shape<span class="op">=</span><span class="dv">501</span>, f<span class="op">=</span><span class="st">'log1p'</span>, vmin<span class="op">=</span><span class="dv">0</span>, vmax<span class="op">=</span><span class="dv">4</span>)</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>plt.gca().plot(np.linspace(<span class="dv">3300</span>,<span class="dv">4800</span>), np.linspace(<span class="dv">3300</span>,<span class="dv">4800</span>)<span class="op">*</span><span class="fl">3.5e-3</span><span class="op">-</span><span class="fl">11.5</span>, c<span class="op">=</span><span class="st">'C0'</span>, lw<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>plt.gca().plot([<span class="dv">4800</span>, <span class="dv">4800</span>], [<span class="dv">0</span>,<span class="dv">5</span>], c<span class="op">=</span><span class="st">'C0'</span>, lw<span class="op">=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-02-02_trying_vaex_files/figure-html/cell-18-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>Here I have just over-saturated the heatmap, to see better the limits of this group of data, and I’ve drawn lines to select it. Let’s define the selection:</p>
+<div class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>sel_group <span class="op">=</span> ((df_g.trip_distance<span class="op">&lt;</span>df_g.trip_duration.td.seconds<span class="op">*</span><span class="fl">3.5e-3</span><span class="op">-</span><span class="fl">11.5</span>) <span class="op">&amp;</span> (df_g.trip_duration.td.seconds<span class="op">&lt;</span><span class="dv">4800</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now that we have a selection we can as ourselves when did these trip took place. To answer this we can use the same histogram that we plotted before, but this time including the selection of the group of points.</p>
+<div class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>df_g.viz.histogram(<span class="st">"pickup_datetime"</span>, grid<span class="op">=</span>df_g.count(binby<span class="op">=</span><span class="st">"delta_t"</span>, shape<span class="op">=</span>size, selection<span class="op">=</span>sel_group), </span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>                   shape<span class="op">=</span>size, figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">3</span>), selection<span class="op">=</span>sel_group)</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>plt.gca().axvline(np.datetime64(<span class="st">'2015-02-23'</span>), c<span class="op">=</span><span class="st">'k'</span>, ls<span class="op">=</span><span class="st">'--'</span>, lw<span class="op">=</span><span class="fl">0.5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="17">
+<pre><code>&lt;matplotlib.lines.Line2D at 0x7f9b133ace50&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-02-02_trying_vaex_files/figure-html/cell-20-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<p>Clearly it seems that all of those trips originated on a particular day, Feb.&nbsp;23rd 2015!</p>
+<p>Now, I have no idea of what happened on that particular day, maybe just a malfunction of the instruments, but at least we have singled out this particular group of trips from the rest of the dataset.</p>
+</section>
+<section id="a-peculiar-group-2" class="level3">
+<h3 class="anchored" data-anchor-id="a-peculiar-group-2">A peculiar group 2</h3>
+<p>We can use this weird data projections, such as the space of trip duration vs.&nbsp;trip distance, to select particular groups of data not only looking at the number counts, but also exploring other more complex statistics. For instance, let’s colour the grid cells by mean pickup hour:</p>
+<div class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>df.viz.heatmap(<span class="st">"td_seconds(trip_duration)"</span>, <span class="st">"trip_distance"</span>, what<span class="op">=</span><span class="st">"mean(pickup_hour)"</span>, limits<span class="op">=</span>[[<span class="dv">0</span>,<span class="dv">15000</span>],[<span class="dv">0</span>,<span class="dv">50</span>]], </span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>               shape<span class="op">=</span><span class="dv">501</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="18">
+<pre><code>&lt;matplotlib.image.AxesImage at 0x7f9b12cf81d0&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-02-02_trying_vaex_files/figure-html/cell-21-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<p>Again, it is pretty evident that there are some non-trivial features in this diagram. Let’s focus on the cluster of trips done after midnight and in the morning that appears on the ridge of the main correlation.</p>
+<div class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>df.viz.heatmap(<span class="st">"td_seconds(trip_duration)"</span>, <span class="st">"trip_distance"</span>, what<span class="op">=</span><span class="st">"mean(pickup_hour)"</span>, limits<span class="op">=</span>[[<span class="dv">0</span>,<span class="dv">15000</span>],[<span class="dv">0</span>,<span class="dv">50</span>]], </span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>               shape<span class="op">=</span><span class="dv">501</span>)</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>plt.gca().plot(np.linspace(<span class="dv">0</span>,<span class="dv">3000</span>), np.linspace(<span class="dv">0</span>,<span class="dv">3000</span>)<span class="op">*</span><span class="fl">1.1e-2</span>, c<span class="op">=</span><span class="st">'C0'</span>)</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>plt.gca().plot(np.linspace(<span class="dv">0</span>,<span class="dv">2700</span>), np.linspace(<span class="dv">0</span>,<span class="dv">2700</span>)<span class="op">*</span><span class="fl">1.8e-2</span>, c<span class="op">=</span><span class="st">'C0'</span>)</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>plt.gca().axhline(<span class="dv">25</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="19">
+<pre><code>&lt;matplotlib.lines.Line2D at 0x7f9b5fca2a10&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-02-02_trying_vaex_files/figure-html/cell-22-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<p>Here I’ve drawn some auxiliary lines that I can use to make another group selection</p>
+<div class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>sel_group <span class="op">=</span> ((df.trip_distance<span class="op">&lt;</span>df.trip_duration.td.seconds<span class="op">*</span><span class="fl">1.8e-2</span>) <span class="op">&amp;</span> </span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>             (df.trip_distance<span class="op">&gt;</span>df.trip_duration.td.seconds<span class="op">*</span><span class="fl">1.1e-2</span>) <span class="op">&amp;</span> </span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>             (df.trip_distance<span class="op">&lt;</span><span class="dv">25</span>) <span class="op">&amp;</span> (df.pickup_hour<span class="op">&gt;</span><span class="dv">3</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>In this selection I have also excluded the trips done just after midnight, to focus in particular on those done in the early morning.</p>
+<p>Let’s now plot these trips on the NYC map.</p>
+<div class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>df.viz.heatmap([[<span class="st">"pickup_longitude"</span>, <span class="st">"pickup_latitude"</span>],[<span class="st">"dropoff_longitude"</span>, <span class="st">"dropoff_latitude"</span>]], </span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>               limits<span class="op">=</span>[[[lon_min, lon_max], [lat_min, lat_max]],[[lon_min, lon_max], [lat_min, lat_max]]], </span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>               what<span class="op">=</span>[<span class="st">"count(*)+1"</span>,<span class="st">"mean(pickup_hour)"</span>], figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">10</span>),</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>               f<span class="op">=</span>[<span class="st">"log1p"</span>,<span class="st">"identity"</span>], shape<span class="op">=</span><span class="dv">256</span>,</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>               selection<span class="op">=</span>sel_group)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="21">
+<pre><code>&lt;matplotlib.image.AxesImage at 0x7f9b1479f810&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-02-02_trying_vaex_files/figure-html/cell-24-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<p>In this Figure, the top panels show maps of pickup locations and the bottom panels show maps of the dropoff locations, while the left panels are density maps of the number counts of trips and in the right panels each grid cell is colored by mean pickup hour. In particular in these maps on the right we see an interesting behaviour: in the group of trips that we have selected, the early morning ones - corresponding to dark colors - have pickup locations all across Manhattan, while they have very concentrated dropoff locations at the JFK airport.</p>
+<p>This means that the group of early morning trips we have selected along the ridge of the trip duration vs.&nbsp;trip distance diagram is made by travellers reaching JFK airport mostly from Manhattan.</p>
+</section>
+<section id="how-long-does-it-take-to-reach-jfk-airport-from-lower-manhattan" class="level3">
+<h3 class="anchored" data-anchor-id="how-long-does-it-take-to-reach-jfk-airport-from-lower-manhattan">How long does it take to reach JFK airport from lower Manhattan?</h3>
+<p>Finally, the last thing that I wanted to show in this notebook is that with vaex we can easily explore how do trip times vary as a function of pickup and dropoff location and time of day.</p>
+<p>First of all let’s make a simple function to define a rectangular filter in longitude and latitude:</p>
+<div class="cell" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> bbox(<span class="bu">long</span>, lat, min_x<span class="op">=-</span>np.inf, max_x<span class="op">=</span>np.inf, min_y<span class="op">=-</span>np.inf, max_y<span class="op">=</span>np.inf):</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">""" Bounding box filter</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="co">    Parameters</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="co">    ----------                        </span></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a><span class="co">    long: vaex Expression</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a><span class="co">        The column of the DataFrame with longitudes</span></span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a><span class="co">    lat : vaex Expression</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a><span class="co">        The column of the DataFrame with longitudes</span></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a><span class="co">        </span></span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a><span class="co">    min_i, max_i: float</span></span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a><span class="co">        The bounding box limits for each coordinate.</span></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns</span></span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a><span class="co">    -------</span></span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a><span class="co">    bb_filter : vaex Expression</span></span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a><span class="co">        Bounding box selection </span></span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>    bound_x <span class="op">=</span> (<span class="bu">long</span><span class="op">&gt;</span>min_x) <span class="op">&amp;</span> (<span class="bu">long</span><span class="op">&lt;</span>max_x)</span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a>    bound_y <span class="op">=</span> (lat<span class="op">&gt;</span>min_y)  <span class="op">&amp;</span> (lat<span class="op">&lt;</span>max_y)</span>
+<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a>    bb_filter <span class="op">=</span> bound_x <span class="op">&amp;</span> bound_y</span>
+<span id="cb38-25"><a href="#cb38-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-26"><a href="#cb38-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> bb_filter</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now, we can define the vertices of the bounding boxes for the dropoff location at JFK airport and for pickup locations in lower Manhattan:</p>
+<div class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>bbox_jfk <span class="op">=</span> {<span class="st">'min_x'</span>:<span class="op">-</span><span class="fl">73.81850</span>, <span class="st">'max_x'</span>:<span class="op">-</span><span class="fl">73.77123</span>, <span class="st">'min_y'</span>:<span class="fl">40.63755</span>, <span class="st">'max_y'</span>:<span class="fl">40.66475</span>}</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>bbox_fin <span class="op">=</span> {<span class="st">'min_x'</span>:<span class="op">-</span><span class="fl">74.01993</span>, <span class="st">'max_x'</span>:<span class="op">-</span><span class="fl">73.99855</span>, <span class="st">'min_y'</span>:<span class="fl">40.70000</span>, <span class="st">'max_y'</span>:<span class="fl">40.71399</span>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>df_g.viz.heatmap([[<span class="st">"pickup_longitude"</span>, <span class="st">"pickup_latitude"</span>], [<span class="st">"dropoff_longitude"</span>, <span class="st">"dropoff_latitude"</span>]], f<span class="op">=</span><span class="st">"log1p"</span>, </span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>                 limits<span class="op">=</span>[[[lon_min, lon_max], [lat_min, lat_max]],[[lon_min, lon_max], [lat_min, lat_max]]], </span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>                 shape<span class="op">=</span><span class="dv">512</span>, figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">6</span>),</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>                 selection<span class="op">=</span>[bbox(df_g.pickup_longitude, df_g.pickup_latitude, <span class="op">**</span>bbox_fin),</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>                            bbox(df_g.dropoff_longitude, df_g.dropoff_latitude, <span class="op">**</span>bbox_jfk)])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="24">
+<pre><code>&lt;matplotlib.image.AxesImage at 0x7f9b1408dc90&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-02-02_trying_vaex_files/figure-html/cell-27-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<p>The two plots above highlight our rectangular selections in the pickup and dropoff locations maps.</p>
+<p>Now let’s define an expression that holds together the two selections (I am also excluding trips that started at JFK, just have a cleaner catalog)</p>
+<div class="cell" data-execution_count="25">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>sel_trips <span class="op">=</span> bbox(df_g.pickup_longitude, df_g.pickup_latitude, <span class="op">**</span>bbox_fin) <span class="op">&amp;</span> bbox(df_g.dropoff_longitude, df_g.dropoff_latitude, <span class="op">**</span>bbox_jfk) <span class="op">&amp;</span> <span class="op">~</span>bbox(df_g.pickup_longitude, df_g.pickup_latitude, <span class="op">**</span>bbox_jfk)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>And now let’s use vaex to compute the mean trip duration in seconds for this group of trips as a function of hour of pickup:</p>
+<div class="cell" data-execution_count="26">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>mean <span class="op">=</span> df_g.mean(<span class="st">"td_seconds(trip_duration)"</span>, binby<span class="op">=</span><span class="st">"pickup_hour"</span>, shape<span class="op">=</span><span class="dv">23</span>, selection<span class="op">=</span>sel_trips)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CPU times: user 29.6 s, sys: 4.48 s, total: 34.1 s
+Wall time: 11.2 s</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="27">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>plt.plot(np.arange(<span class="dv">0</span>,<span class="dv">23</span>), mean<span class="op">/</span><span class="fl">60.</span>, <span class="st">'k-'</span>, lw<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>plt.ylim([<span class="dv">0</span>, <span class="va">None</span>])</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"hour of pickup"</span>)</span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"mean trip duration in minutes"</span>)</span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>plt.xticks(np.arange(<span class="dv">0</span>,<span class="dv">23</span>,<span class="dv">2</span>))<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="2023-02-02_trying_vaex_files/figure-html/cell-30-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>Perhaps unexpectedly, if you have to take a flight in the afternoon you better ride your taxi quite in advance or consider public transportation!</p>
+<p>aand that’s all for this little showcase! I will continue to use vaex for my big data visualisation and exploration needs in the future and I will report here if I see anything cool along the way.</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
