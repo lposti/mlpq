@@ -9,11 +9,11 @@ about:
       href: https://github.com/lposti/
     - icon: linkedin
       text: LinkedIn
-      href: https://linkedin.com
+      href: https://www.linkedin.com/in/lposti/
     - icon: mortarboard-fill
       text: Scholar
       href: https://scholar.google.com/citations?user=fDDcGdwAAAAJ&hl=en
-    
+
 ---
 
 I am **Lorenzo Posti**, research scientist with a Ph.D. in Astrophysics and >10 years
