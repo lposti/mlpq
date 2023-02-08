@@ -6,9 +6,9 @@ csl: apj.csl
 
 ---
 nocite: |
-  @diTeodoro+23,  @Posti22b, @Posti22a, @Muller+21, @Oria+21, @diTeodoro+21, @Marasco+21,
-  @Skuladottir+21, @ManceraPina+21b, @Posti+21, @ManceraPina+21a, @Posti+20, @Marasco+20,
-  @ManceraPina+20, @Tortora+19, @ManceraPina+19, @Muller+19, @Posti+19c, @Hagen+19,
+  @Galan-de-Anta+23, @diTeodoro+23,  @Posti22b, @Posti22a, @Muller+21, @Oria+21, @diTeodoro+21,
+  @Marasco+21, @Skuladottir+21, @ManceraPina+21b, @Posti+21, @ManceraPina+21a, @Posti+20,
+  @Marasco+20, @ManceraPina+20, @Tortora+19, @ManceraPina+19, @Muller+19, @Posti+19c, @Hagen+19,
   @Pascale+19, @Savino+19, @Marasco+19, @Veljanoski+19, @Posti+19b, @Posti+19a, @Massari+18,
   @Pascale+18, @Posti+18c, @Posti+18b, @Posti+18a, @Massari+17, @Zhu+16, @Posti+16,
   @Nipoti+15, @Posti+15, @Nipoti+14, @Posti+14, @Nipoti+13
@@ -16,9 +16,9 @@ nocite: |
 
 #### Metrics (source: [ADS](https://ui.adsabs.harvard.edu/search/q=docs(library%2FfCiUp3W_T7qXYNboezCKAg)&sort=date%20desc%2C%20bibcode%20desc&p_=0))
 
-- 38 refereed publications, 13 first-author, 12 second-author
+- 39 refereed publications, 13 first-author, 12 second-author
 - h-index: 18
-- Citations: 986
+- Citations: 989
 
 
 
