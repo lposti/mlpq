@@ -18,7 +18,7 @@ nocite: |
 
 - 39 refereed publications, 13 first-author, 12 second-author
 - h-index: 18
-- Citations: 989
+- Citations: 1002
 
 
 
