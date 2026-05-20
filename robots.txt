@@ -1,1 +1,1 @@
-Sitemap: https://github.com/lposti/mlpq/sitemap.xml
+Sitemap: https://lposti.github.io/mlpq/sitemap.xml
